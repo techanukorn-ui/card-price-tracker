@@ -2,13 +2,62 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Card, CardWithLatestPrice, PriceHistory } from '@/lib/types'
+import { CATEGORY_OPTIONS, Card, CardWithLatestPrice, PriceHistory } from '@/lib/types'
 import CardTile from '@/components/CardTile'
 import CardFormModal from '@/components/CardFormModal'
 import MoveToCollectionModal from '@/components/MoveToCollectionModal'
 import Dashboard from '@/components/Dashboard'
 
 type Tab = 'mine' | 'wishlist'
+type SortOption = 'newest' | 'profit_desc' | 'market_desc' | 'name_asc'
+
+const SORT_LABELS: Record<SortOption, string> = {
+  newest: 'ล่าสุด',
+  profit_desc: 'กำไรมากสุด',
+  market_desc: 'ราคาตลาดสูงสุด',
+  name_asc: 'ชื่อ (ก-ฮ)',
+}
+
+function applyFilters(
+  list: CardWithLatestPrice[],
+  search: string,
+  category: string,
+  grade: string
+): CardWithLatestPrice[] {
+  return list.filter((c) => {
+    if (search.trim() && !c.name.toLowerCase().includes(search.trim().toLowerCase())) return false
+    if (category !== 'all' && c.category !== category) return false
+    if (grade !== 'all' && c.grade !== grade) return false
+    return true
+  })
+}
+
+function applySort(list: CardWithLatestPrice[], sort: SortOption): CardWithLatestPrice[] {
+  const arr = [...list]
+  switch (sort) {
+    case 'profit_desc':
+      arr.sort((a, b) => {
+        const pa = a.latestPrice ? a.latestPrice.market_price_thb * (a.quantity ?? 1) - (a.cost_thb ?? 0) : -Infinity
+        const pb = b.latestPrice ? b.latestPrice.market_price_thb * (b.quantity ?? 1) - (b.cost_thb ?? 0) : -Infinity
+        return pb - pa
+      })
+      return arr
+    case 'market_desc':
+      arr.sort((a, b) => {
+        const va = a.latestPrice ? a.latestPrice.market_price_thb * (a.quantity ?? 1) : -1
+        const vb = b.latestPrice ? b.latestPrice.market_price_thb * (b.quantity ?? 1) : -1
+        return vb - va
+      })
+      return arr
+    case 'name_asc':
+      arr.sort((a, b) => a.name.localeCompare(b.name, 'th'))
+      return arr
+    case 'newest':
+    default:
+      arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      return arr
+  }
+}
 
 export default function HomePage() {
   const [tab, setTab] = useState<Tab>('mine')
@@ -22,6 +71,11 @@ export default function HomePage() {
   const [formMode, setFormMode] = useState<'mine' | 'wishlist'>('mine')
 
   const [movingCard, setMovingCard] = useState<Card | null>(null)
+
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<SortOption>('newest')
+  const [filterCategory, setFilterCategory] = useState('all')
+  const [filterGrade, setFilterGrade] = useState('all')
 
   const loadData = useCallback(async () => {
     setError(null)
@@ -54,6 +108,20 @@ export default function HomePage() {
 
   const myCards = useMemo(() => withLatest(cards.filter((c) => !c.is_wishlist)), [cards, latestPriceByCard])
   const wishlistCards = useMemo(() => withLatest(cards.filter((c) => c.is_wishlist)), [cards, latestPriceByCard])
+
+  const gradeOptions = useMemo(() => {
+    const set = new Set(cards.map((c) => c.grade).filter(Boolean))
+    return Array.from(set).sort()
+  }, [cards])
+
+  const visibleMyCards = useMemo(
+    () => applySort(applyFilters(myCards, search, filterCategory, filterGrade), sortBy),
+    [myCards, search, filterCategory, filterGrade, sortBy]
+  )
+  const visibleWishlistCards = useMemo(
+    () => applySort(applyFilters(wishlistCards, search, filterCategory, filterGrade), sortBy),
+    [wishlistCards, search, filterCategory, filterGrade, sortBy]
+  )
 
   function openAddForm(mode: 'mine' | 'wishlist') {
     setFormMode(mode)
@@ -109,6 +177,40 @@ export default function HomePage() {
         </div>
       )}
 
+      {!loading && cards.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="ค้นหาชื่อการ์ด..."
+            className="input min-w-[140px] flex-1"
+          />
+          <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="input !w-auto">
+            <option value="all">ทุกหมวดหมู่</option>
+            {CATEGORY_OPTIONS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <select value={filterGrade} onChange={(e) => setFilterGrade(e.target.value)} className="input !w-auto">
+            <option value="all">ทุกเกรด</option>
+            {gradeOptions.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} className="input !w-auto">
+            {(Object.keys(SORT_LABELS) as SortOption[]).map((s) => (
+              <option key={s} value={s}>
+                เรียงตาม: {SORT_LABELS[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {loading ? (
         <div className="py-20 text-center text-slate-400">กำลังโหลด...</div>
       ) : tab === 'mine' ? (
@@ -127,9 +229,11 @@ export default function HomePage() {
 
           {myCards.length === 0 ? (
             <EmptyState text="ยังไม่มีการ์ดในคอลเลกชัน" />
+          ) : visibleMyCards.length === 0 ? (
+            <EmptyState text="ไม่พบการ์ดที่ตรงกับตัวกรอง" />
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {myCards.map((c) => (
+              {visibleMyCards.map((c) => (
                 <CardTile
                   key={c.id}
                   card={c}
@@ -156,9 +260,11 @@ export default function HomePage() {
 
           {wishlistCards.length === 0 ? (
             <EmptyState text="ยังไม่มีการ์ดใน Wishlist" />
+          ) : visibleWishlistCards.length === 0 ? (
+            <EmptyState text="ไม่พบการ์ดที่ตรงกับตัวกรอง" />
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {wishlistCards.map((c) => (
+              {visibleWishlistCards.map((c) => (
                 <CardTile
                   key={c.id}
                   card={c}
