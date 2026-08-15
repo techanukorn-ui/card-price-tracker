@@ -20,6 +20,7 @@ export interface Card {
   category: string
   quantity: number
   cost_thb: number | null
+  costs_thb: number[] | null
   snkrdunk_url: string | null
   image_url: string | null
   custom_image_url: string | null
