@@ -26,7 +26,7 @@ export default function MoveToCollectionModal({ card, onClose, onMoved }: Props)
     setError(null)
     const { error: updErr } = await supabase
       .from('cards')
-      .update({ is_wishlist: false, cost_thb: Number(costThb) })
+      .update({ is_wishlist: false, cost_thb: Number(costThb), costs_thb: [Number(costThb)], quantity: 1 })
       .eq('id', card.id)
     setSaving(false)
     if (updErr) {
