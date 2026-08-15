@@ -69,6 +69,7 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
   const latest = history[0] || null
   const qty = card.quantity ?? 1
   const marketTotal = latest ? latest.market_price_thb * qty : null
+  const marketTotalJpy = latest ? latest.market_price_jpy * qty : null
   const profitInfo = !card.is_wishlist ? calcProfit(card.cost_thb, marketTotal) : null
 
   return (
@@ -120,10 +121,17 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
         )}
         <InfoTile
           label="ราคาตลาดล่าสุด"
-          value={latest ? formatTHB(marketTotal) : 'ยังไม่มีราคา'}
+          value={latest ? `${formatTHB(marketTotal)} (${formatJPY(marketTotalJpy)})` : 'ยังไม่มีราคา'}
           hint={
             latest
-              ? `${formatJPY(latest.market_price_jpy)}${qty > 1 ? ` × ${qty} ใบ` : ''} · อัปเดต ${formatRelative(latest.fetched_at)}`
+              ? [
+                  qty > 1
+                    ? `${formatTHB(latest.market_price_thb)} (${formatJPY(latest.market_price_jpy)}) ต่อใบ × ${qty}`
+                    : null,
+                  `อัปเดต ${formatRelative(latest.fetched_at)}`,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
               : undefined
           }
         />
