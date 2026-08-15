@@ -3,19 +3,36 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { CATEGORY_OPTIONS, Card, CardWithLatestPrice, PriceHistory } from '@/lib/types'
+import { calcProfit } from '@/lib/format'
 import CardTile from '@/components/CardTile'
 import CardFormModal from '@/components/CardFormModal'
 import MoveToCollectionModal from '@/components/MoveToCollectionModal'
 import Dashboard from '@/components/Dashboard'
 
 type Tab = 'mine' | 'wishlist'
-type SortOption = 'newest' | 'profit_desc' | 'market_desc' | 'name_asc'
+type SortOption =
+  | 'newest'
+  | 'profit_amount_desc'
+  | 'profit_amount_asc'
+  | 'profit_margin_desc'
+  | 'profit_margin_asc'
+  | 'market_desc'
+  | 'name_asc'
 
 const SORT_LABELS: Record<SortOption, string> = {
   newest: 'ล่าสุด',
-  profit_desc: 'กำไรมากสุด',
+  profit_amount_desc: 'กำไรมากสุด (จำนวนเงิน)',
+  profit_amount_asc: 'ขาดทุนมากสุด (จำนวนเงิน)',
+  profit_margin_desc: 'กำไรมากสุด (Margin %)',
+  profit_margin_asc: 'ขาดทุนมากสุด (Margin %)',
   market_desc: 'ราคาตลาดสูงสุด',
   name_asc: 'ชื่อ (ก-ฮ)',
+}
+
+function getProfitInfo(c: CardWithLatestPrice) {
+  if (!c.latestPrice) return null
+  const marketTotal = c.latestPrice.market_price_thb * (c.quantity ?? 1)
+  return calcProfit(c.cost_thb, marketTotal)
 }
 
 function applyFilters(
@@ -35,11 +52,32 @@ function applyFilters(
 function applySort(list: CardWithLatestPrice[], sort: SortOption): CardWithLatestPrice[] {
   const arr = [...list]
   switch (sort) {
-    case 'profit_desc':
+    case 'profit_amount_desc':
       arr.sort((a, b) => {
-        const pa = a.latestPrice ? a.latestPrice.market_price_thb * (a.quantity ?? 1) - (a.cost_thb ?? 0) : -Infinity
-        const pb = b.latestPrice ? b.latestPrice.market_price_thb * (b.quantity ?? 1) - (b.cost_thb ?? 0) : -Infinity
+        const pa = getProfitInfo(a)?.profit ?? -Infinity
+        const pb = getProfitInfo(b)?.profit ?? -Infinity
         return pb - pa
+      })
+      return arr
+    case 'profit_amount_asc':
+      arr.sort((a, b) => {
+        const pa = getProfitInfo(a)?.profit ?? Infinity
+        const pb = getProfitInfo(b)?.profit ?? Infinity
+        return pa - pb
+      })
+      return arr
+    case 'profit_margin_desc':
+      arr.sort((a, b) => {
+        const pa = getProfitInfo(a)?.marginPct ?? -Infinity
+        const pb = getProfitInfo(b)?.marginPct ?? -Infinity
+        return pb - pa
+      })
+      return arr
+    case 'profit_margin_asc':
+      arr.sort((a, b) => {
+        const pa = getProfitInfo(a)?.marginPct ?? Infinity
+        const pb = getProfitInfo(b)?.marginPct ?? Infinity
+        return pa - pb
       })
       return arr
     case 'market_desc':
