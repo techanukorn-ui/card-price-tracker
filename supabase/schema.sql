@@ -5,32 +5,42 @@ create extension if not exists "pgcrypto";
 
 -- ============ cards ============
 create table if not exists public.cards (
-    id uuid primary key default gen_random_uuid(),
-    name text not null,
-    grade text not null default 'Raw',
-    cost_thb numeric,
-    snkrdunk_url text,
-    image_url text,
-    custom_image_url text,
-    is_wishlist boolean not null default false,
-    created_at timestamptz not null default now()
-  );
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  category text not null default 'Pokémon',
+  grade text not null default 'Raw',
+  cost_thb numeric,
+  quantity integer not null default 1,
+  snkrdunk_url text,
+  image_url text,
+  custom_image_url text,
+  is_wishlist boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+-- for existing projects created before category/quantity existed:
+alter table public.cards add column if not exists category text not null default 'Pokémon';
+alter table public.cards add column if not exists quantity integer not null default 1;
 
 -- ============ price_history ============
 -- one row per price snapshot. never updated/overwritten, only inserted.
 create table if not exists public.price_history (
-    id uuid primary key default gen_random_uuid(),
-    card_id uuid not null references public.cards(id) on delete cascade,
-    market_price_jpy numeric not null,
-    market_price_thb numeric not null,
-    exchange_rate numeric not null,
-    fetched_at timestamptz not null default now()
-  );
+  id uuid primary key default gen_random_uuid(),
+  card_id uuid not null references public.cards(id) on delete cascade,
+  market_price_jpy numeric not null,
+  market_price_thb numeric not null,
+  exchange_rate numeric not null,
+  fetched_at timestamptz not null default now()
+);
 
 create index if not exists price_history_card_id_idx on public.price_history(card_id);
 create index if not exists price_history_fetched_at_idx on public.price_history(fetched_at desc);
 
 -- ============ RLS ============
+-- Single-user personal app: no auth screen, the app reads/writes with the
+-- anon key directly, and price snapshots are written by a separate browser
+-- automation flow using the same anon key (or via /api/update-price using
+-- the service role key). Policies are intentionally open.
 alter table public.cards enable row level security;
 alter table public.price_history enable row level security;
 
@@ -83,3 +93,6 @@ insert into public.cards (name, grade, cost_thb, snkrdunk_url, is_wishlist) valu
 ('Mewtwo CP6', 'PSA10', 50715, 'https://snkrdunk.com/apparels/91463', false),
 ('MEGA Gengar ex SAR M2a 240/193 High Class Pack', 'PSA10', 11690, 'https://snkrdunk.com/apparels/724996', false),
 ('Gengar VMAX: SA SGG 020/019 High Class Deck', 'PSA10', 69000, 'https://snkrdunk.com/apparels/91178', false);
+
+-- for existing projects: backfill category for non-Pokémon cards added after the seed above.
+update public.cards set category = 'One Piece' where name ilike '%One Piece%' or name ilike '%Luffy%';
