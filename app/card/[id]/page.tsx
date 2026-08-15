@@ -70,7 +70,8 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
   const qty = card.quantity ?? 1
   const marketTotal = latest ? latest.market_price_thb * qty : null
   const marketTotalJpy = latest ? latest.market_price_jpy * qty : null
-  const profitInfo = !card.is_wishlist ? calcProfit(card.cost_thb, marketTotal) : null
+  const totalCostThb = card.cost_thb !== null && card.cost_thb !== undefined ? card.cost_thb * qty : null
+  const profitInfo = !card.is_wishlist ? calcProfit(totalCostThb, marketTotal) : null
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-20 pt-6 sm:px-6">
@@ -117,7 +118,11 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         {!card.is_wishlist && (
-          <InfoTile label="ราคาซื้อ" value={formatTHB(card.cost_thb)} />
+          <InfoTile
+            label="ราคาซื้อ"
+            value={formatTHB(totalCostThb)}
+            hint={qty > 1 ? `${formatTHB(card.cost_thb)} ต่อใบ × ${qty}` : undefined}
+          />
         )}
         <InfoTile
           label="ราคาตลาดล่าสุด"
