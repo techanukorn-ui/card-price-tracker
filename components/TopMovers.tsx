@@ -20,8 +20,7 @@ export default function TopMovers({ cards, latestPriceByCard }: Props) {
     const p = latestPriceByCard.get(c.id)
     if (!p) continue
     const qty = c.quantity ?? 1
-    const totalCost = c.cost_thb !== null && c.cost_thb !== undefined ? c.cost_thb * qty : null
-    const info = calcProfit(totalCost, p.market_price_thb * qty)
+    const info = calcProfit(c.cost_thb, p.market_price_thb * qty)
     if (!info) continue
     ranked.push({ card: c, profit: info.profit, marginPct: info.marginPct })
   }
