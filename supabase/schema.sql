@@ -10,6 +10,7 @@ create table if not exists public.cards (
   category text not null default 'Pokémon',
   grade text not null default 'Raw',
   cost_thb numeric,
+  costs_thb numeric[],
   quantity integer not null default 1,
   snkrdunk_url text,
   image_url text,
@@ -21,6 +22,12 @@ create table if not exists public.cards (
 -- for existing projects created before category/quantity existed:
 alter table public.cards add column if not exists category text not null default 'Pokémon';
 alter table public.cards add column if not exists quantity integer not null default 1;
+
+-- costs_thb: per-unit purchase price for each physical copy owned (cards can
+-- be duplicates bought at different prices). cost_thb stays as the total
+-- (sum of costs_thb) for fast queries/sorting; quantity = costs_thb length.
+alter table public.cards add column if not exists costs_thb numeric[];
+update public.cards set costs_thb = array[cost_thb] where cost_thb is not null and costs_thb is null;
 
 -- ============ price_history ============
 -- one row per price snapshot. never updated/overwritten, only inserted.
@@ -93,6 +100,3 @@ insert into public.cards (name, grade, cost_thb, snkrdunk_url, is_wishlist) valu
 ('Mewtwo CP6', 'PSA10', 50715, 'https://snkrdunk.com/apparels/91463', false),
 ('MEGA Gengar ex SAR M2a 240/193 High Class Pack', 'PSA10', 11690, 'https://snkrdunk.com/apparels/724996', false),
 ('Gengar VMAX: SA SGG 020/019 High Class Deck', 'PSA10', 69000, 'https://snkrdunk.com/apparels/91178', false);
-
--- for existing projects: backfill category for non-Pokémon cards added after the seed above.
-update public.cards set category = 'One Piece' where name ilike '%One Piece%' or name ilike '%Luffy%';
