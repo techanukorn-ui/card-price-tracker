@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Card, GRADE_OPTIONS } from '@/lib/types'
+import { Card, CATEGORY_OPTIONS, GRADE_OPTIONS } from '@/lib/types'
 import Modal from './Modal'
 
 interface Props {
@@ -15,8 +15,10 @@ interface Props {
 export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
   const isEdit = !!card
   const [name, setName] = useState(card?.name || '')
+  const [category, setCategory] = useState(card?.category || 'Pokémon')
   const [grade, setGrade] = useState(card?.grade || 'PSA10')
   const [costThb, setCostThb] = useState(card?.cost_thb?.toString() || '')
+  const [quantity, setQuantity] = useState(card?.quantity?.toString() || '1')
   const [snkrdunkUrl, setSnkrdunkUrl] = useState(card?.snkrdunk_url || '')
   const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
@@ -32,6 +34,10 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
     }
     if (mode === 'mine' && costThb.trim() === '') {
       setError('กรุณากรอกราคาซื้อ')
+      return
+    }
+    if (mode === 'mine' && (quantity.trim() === '' || Number(quantity) < 1)) {
+      setError('จำนวนใบต้องมากกว่าหรือเท่ากับ 1')
       return
     }
 
@@ -52,8 +58,10 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
 
       const payload = {
         name: name.trim(),
+        category,
         grade,
         cost_thb: mode === 'mine' ? Number(costThb) : null,
+        quantity: mode === 'mine' ? Number(quantity) || 1 : 1,
         snkrdunk_url: snkrdunkUrl.trim() || null,
         custom_image_url: customImageUrl,
         is_wishlist: mode === 'wishlist',
@@ -87,6 +95,16 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
           />
         </Field>
 
+        <Field label="หมวดหมู่">
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className="input">
+            {CATEGORY_OPTIONS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </Field>
+
         <Field label="เกรด">
           <select value={grade} onChange={(e) => setGrade(e.target.value)} className="input">
             {GRADE_OPTIONS.map((g) => (
@@ -98,16 +116,30 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
         </Field>
 
         {mode === 'mine' && (
-          <Field label="ราคาซื้อ (บาท)">
-            <input
-              type="number"
-              inputMode="decimal"
-              value={costThb}
-              onChange={(e) => setCostThb(e.target.value)}
-              className="input"
-              placeholder="0"
-            />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="ราคาซื้อรวม (บาท)">
+              <input
+                type="number"
+                inputMode="decimal"
+                value={costThb}
+                onChange={(e) => setCostThb(e.target.value)}
+                className="input"
+                placeholder="0"
+              />
+            </Field>
+            <Field label="จำนวนใบ">
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className="input"
+                placeholder="1"
+              />
+            </Field>
+          </div>
         )}
 
         <Field label="SNKRDUNK URL">
