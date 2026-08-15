@@ -20,7 +20,7 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHre
   const unitMarketJpy = card.latestPrice?.market_price_jpy ?? null
   const marketThb = unitMarketThb !== null ? unitMarketThb * qty : null
   const marketJpy = unitMarketJpy !== null ? unitMarketJpy * qty : null
-  const totalCostThb = card.cost_thb !== null && card.cost_thb !== undefined ? card.cost_thb * qty : null
+  const totalCostThb = card.cost_thb ?? null
   const profitInfo = mode === 'mine' ? calcProfit(totalCostThb, marketThb) : null
 
   const body = (
@@ -49,8 +49,10 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHre
         {mode === 'mine' && (
           <>
             <p className="text-xs text-slate-500">ต้นทุน {formatTHB(totalCostThb)}</p>
-            {qty > 1 && (
-              <p className="text-[11px] text-slate-400">{formatTHB(card.cost_thb)} ต่อใบ × {qty}</p>
+            {qty > 1 && card.costs_thb && card.costs_thb.length > 1 && (
+              <p className="text-[11px] text-slate-400">
+                {card.costs_thb.map((c) => formatTHB(c)).join(' + ')}
+              </p>
             )}
           </>
         )}
