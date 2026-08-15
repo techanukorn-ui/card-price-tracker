@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { CardWithLatestPrice } from '@/lib/types'
-import { calcProfit, formatPct, formatRelative, formatSigned, formatTHB } from '@/lib/format'
+import { calcProfit, formatJPY, formatPct, formatRelative, formatSigned, formatTHB } from '@/lib/format'
 
 interface Props {
   card: CardWithLatestPrice
@@ -17,7 +17,9 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHre
   const image = card.custom_image_url || card.image_url
   const qty = card.quantity ?? 1
   const unitMarketThb = card.latestPrice?.market_price_thb ?? null
+  const unitMarketJpy = card.latestPrice?.market_price_jpy ?? null
   const marketThb = unitMarketThb !== null ? unitMarketThb * qty : null
+  const marketJpy = unitMarketJpy !== null ? unitMarketJpy * qty : null
   const profitInfo = mode === 'mine' ? calcProfit(card.cost_thb, marketThb) : null
 
   const body = (
@@ -49,7 +51,14 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHre
 
         {card.latestPrice ? (
           <>
-            <p className="text-sm font-bold text-slate-900">{formatTHB(marketThb)}</p>
+            <p className="text-sm font-bold text-slate-900">
+              {formatTHB(marketThb)} <span className="text-xs font-normal text-slate-400">({formatJPY(marketJpy)})</span>
+            </p>
+            {qty > 1 && (
+              <p className="text-[11px] text-slate-500">
+                {formatTHB(unitMarketThb)} ({formatJPY(unitMarketJpy)}) ต่อใบ × {qty}
+              </p>
+            )}
             <p className="text-[11px] text-slate-400">อัปเดตล่าสุดเมื่อ {formatRelative(card.latestPrice.fetched_at)}</p>
           </>
         ) : (
