@@ -31,10 +31,8 @@ const SORT_LABELS: Record<SortOption, string> = {
 
 function getProfitInfo(c: CardWithLatestPrice) {
   if (!c.latestPrice) return null
-  const qty = c.quantity ?? 1
-  const marketTotal = c.latestPrice.market_price_thb * qty
-  const totalCost = c.cost_thb !== null && c.cost_thb !== undefined ? c.cost_thb * qty : null
-  return calcProfit(totalCost, marketTotal)
+  const marketTotal = c.latestPrice.market_price_thb * (c.quantity ?? 1)
+  return calcProfit(c.cost_thb, marketTotal)
 }
 
 function applyFilters(
