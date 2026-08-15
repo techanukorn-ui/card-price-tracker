@@ -70,7 +70,7 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
   const qty = card.quantity ?? 1
   const marketTotal = latest ? latest.market_price_thb * qty : null
   const marketTotalJpy = latest ? latest.market_price_jpy * qty : null
-  const totalCostThb = card.cost_thb !== null && card.cost_thb !== undefined ? card.cost_thb * qty : null
+  const totalCostThb = card.cost_thb ?? null
   const profitInfo = !card.is_wishlist ? calcProfit(totalCostThb, marketTotal) : null
 
   return (
@@ -121,7 +121,11 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
           <InfoTile
             label="ราคาซื้อ"
             value={formatTHB(totalCostThb)}
-            hint={qty > 1 ? `${formatTHB(card.cost_thb)} ต่อใบ × ${qty}` : undefined}
+            hint={
+              qty > 1 && card.costs_thb && card.costs_thb.length > 1
+                ? card.costs_thb.map((c) => formatTHB(c)).join(' + ')
+                : undefined
+            }
           />
         )}
         <InfoTile
