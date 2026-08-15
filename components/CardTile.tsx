@@ -15,7 +15,9 @@ interface Props {
 
 export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHref }: Props) {
   const image = card.custom_image_url || card.image_url
-  const marketThb = card.latestPrice?.market_price_thb ?? null
+  const qty = card.quantity ?? 1
+  const unitMarketThb = card.latestPrice?.market_price_thb ?? null
+  const marketThb = unitMarketThb !== null ? unitMarketThb * qty : null
   const profitInfo = mode === 'mine' ? calcProfit(card.cost_thb, marketThb) : null
 
   const body = (
@@ -30,9 +32,15 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHre
         <span className="absolute left-1.5 top-1.5 rounded-full bg-slate-900/80 px-2 py-0.5 text-[11px] font-semibold text-white">
           {card.grade}
         </span>
+        {qty > 1 && (
+          <span className="absolute right-1.5 top-1.5 rounded-full bg-brand-600/90 px-2 py-0.5 text-[11px] font-semibold text-white">
+            ×{qty}
+          </span>
+        )}
       </div>
 
       <div className="mt-2 space-y-1">
+        <p className="text-[10px] font-medium uppercase tracking-wide text-brand-500">{card.category}</p>
         <p className="line-clamp-2 text-sm font-semibold leading-snug text-slate-800">{card.name}</p>
 
         {mode === 'mine' && (
