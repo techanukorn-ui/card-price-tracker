@@ -5,6 +5,8 @@ import { Card, PriceHistory } from '@/lib/types'
 import { formatPct, formatSigned, formatTHB } from '@/lib/format'
 import { buildPortfolioSeries } from '@/lib/portfolio'
 import PortfolioChart from './PortfolioChart'
+import TopMovers from './TopMovers'
+import CategoryBreakdown from './CategoryBreakdown'
 
 interface Props {
   cards: Card[]
@@ -23,7 +25,7 @@ export default function Dashboard({ cards, priceHistory, latestPriceByCard }: Pr
       totalCost += c.cost_thb ?? 0
       const p = latestPriceByCard.get(c.id)
       if (p) {
-        totalValue += p.market_price_thb
+        totalValue += p.market_price_thb * (c.quantity ?? 1)
         pricedCount += 1
       }
     }
@@ -57,6 +59,11 @@ export default function Dashboard({ cards, priceHistory, latestPriceByCard }: Pr
 
       <div className="mt-4">
         <PortfolioChart data={series} />
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <TopMovers cards={myCards} latestPriceByCard={latestPriceByCard} />
+        <CategoryBreakdown cards={myCards} />
       </div>
     </section>
   )
