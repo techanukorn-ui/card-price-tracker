@@ -14,7 +14,7 @@ export default function CategoryBreakdown({ cards }: Props) {
   const totals = new Map<string, number>()
   for (const c of cards) {
     const key = c.category || 'อื่นๆ'
-    totals.set(key, (totals.get(key) || 0) + (c.cost_thb ?? 0))
+    totals.set(key, (totals.get(key) || 0) + (c.cost_thb ?? 0) * (c.quantity ?? 1))
   }
   const data = Array.from(totals.entries())
     .map(([name, value]) => ({ name, value }))
