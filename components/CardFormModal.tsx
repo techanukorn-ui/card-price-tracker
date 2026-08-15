@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Card, CATEGORY_OPTIONS, GRADE_OPTIONS } from '@/lib/types'
+import { formatTHB } from '@/lib/format'
 import Modal from './Modal'
 
 interface Props {
@@ -116,29 +117,36 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
         </Field>
 
         {mode === 'mine' && (
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="ราคาซื้อรวม (บาท)">
-              <input
-                type="number"
-                inputMode="decimal"
-                value={costThb}
-                onChange={(e) => setCostThb(e.target.value)}
-                className="input"
-                placeholder="0"
-              />
-            </Field>
-            <Field label="จำนวนใบ">
-              <input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                step={1}
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                className="input"
-                placeholder="1"
-              />
-            </Field>
+          <div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="ต้นทุนต่อใบ (บาท)">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={costThb}
+                  onChange={(e) => setCostThb(e.target.value)}
+                  className="input"
+                  placeholder="0"
+                />
+              </Field>
+              <Field label="จำนวนใบ">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  step={1}
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  className="input"
+                  placeholder="1"
+                />
+              </Field>
+            </div>
+            {Number(quantity) > 1 && costThb.trim() !== '' && !isNaN(Number(costThb)) && (
+              <p className="mt-1.5 text-[11px] text-slate-400">
+                รวมทั้งหมด {formatTHB(Number(costThb) * Number(quantity))} ({quantity} ใบ)
+              </p>
+            )}
           </div>
         )}
 
