@@ -38,7 +38,7 @@ export function buildPortfolioSeries(cards: Card[], priceHistory: PriceHistory[]
     for (const c of myCards) {
       const created = new Date(c.created_at).getTime()
       if (created > t) continue
-      totalCost += c.cost_thb ?? 0
+      totalCost += (c.cost_thb ?? 0) * (c.quantity ?? 1)
       const history = byCard.get(c.id) || []
       let latest: PriceHistory | null = null
       for (const p of history) {
