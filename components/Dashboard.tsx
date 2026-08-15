@@ -22,7 +22,7 @@ export default function Dashboard({ cards, priceHistory, latestPriceByCard }: Pr
     let totalValue = 0
     let pricedCount = 0
     for (const c of myCards) {
-      totalCost += (c.cost_thb ?? 0) * (c.quantity ?? 1)
+      totalCost += c.cost_thb ?? 0
       const p = latestPriceByCard.get(c.id)
       if (p) {
         totalValue += p.market_price_thb * (c.quantity ?? 1)
