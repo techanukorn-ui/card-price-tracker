@@ -13,17 +13,32 @@ interface Props {
   onSaved: () => void
 }
 
+function initialCosts(card: Card | null): string[] {
+  if (card?.costs_thb && card.costs_thb.length > 0) return card.costs_thb.map((c) => c.toString())
+  if (card?.cost_thb !== null && card?.cost_thb !== undefined) return [card.cost_thb.toString()]
+  return ['']
+}
+
 export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
   const isEdit = !!card
   const [name, setName] = useState(card?.name || '')
   const [category, setCategory] = useState(card?.category || 'Pokémon')
   const [grade, setGrade] = useState(card?.grade || 'PSA10')
-  const [costThb, setCostThb] = useState(card?.cost_thb?.toString() || '')
-  const [quantity, setQuantity] = useState(card?.quantity?.toString() || '1')
+  const [costsThb, setCostsThb] = useState<string[]>(initialCosts(card))
   const [snkrdunkUrl, setSnkrdunkUrl] = useState(card?.snkrdunk_url || '')
   const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  function updateCost(index: number, value: string) {
+    setCostsThb((prev) => prev.map((c, i) => (i === index ? value : c)))
+  }
+  function addCost() {
+    setCostsThb((prev) => [...prev, ''])
+  }
+  function removeCost(index: number) {
+    setCostsThb((prev) => prev.filter((_, i) => i !== index))
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -33,12 +48,11 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
       setError('กรุณากรอกชื่อการ์ด')
       return
     }
-    if (mode === 'mine' && costThb.trim() === '') {
-      setError('กรุณากรอกราคาซื้อ')
-      return
-    }
-    if (mode === 'mine' && (quantity.trim() === '' || Number(quantity) < 1)) {
-      setError('จำนวนใบต้องมากกว่าหรือเท่ากับ 1')
+    if (
+      mode === 'mine' &&
+      (costsThb.length === 0 || costsThb.some((c) => c.trim() === '' || isNaN(Number(c))))
+    ) {
+      setError('กรุณากรอกราคาซื้อให้ครบทุกใบ')
       return
     }
 
@@ -57,12 +71,15 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
         customImageUrl = pub.publicUrl
       }
 
+      const parsedCosts = mode === 'mine' ? costsThb.map((c) => Number(c)) : []
+
       const payload = {
         name: name.trim(),
         category,
         grade,
-        cost_thb: mode === 'mine' ? Number(costThb) : null,
-        quantity: mode === 'mine' ? Number(quantity) || 1 : 1,
+        cost_thb: mode === 'mine' ? parsedCosts.reduce((s, c) => s + c, 0) : null,
+        costs_thb: mode === 'mine' ? parsedCosts : null,
+        quantity: mode === 'mine' ? parsedCosts.length : 1,
         snkrdunk_url: snkrdunkUrl.trim() || null,
         custom_image_url: customImageUrl,
         is_wishlist: mode === 'wishlist',
@@ -118,33 +135,40 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
 
         {mode === 'mine' && (
           <div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="ต้นทุนต่อใบ (บาท)">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={costThb}
-                  onChange={(e) => setCostThb(e.target.value)}
-                  className="input"
-                  placeholder="0"
-                />
-              </Field>
-              <Field label="จำนวนใบ">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  step={1}
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  className="input"
-                  placeholder="1"
-                />
-              </Field>
+            <span className="mb-1 block text-xs font-medium text-slate-600">ต้นทุนแต่ละใบ (บาท)</span>
+            <div className="space-y-2">
+              {costsThb.map((c, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={c}
+                    onChange={(e) => updateCost(i, e.target.value)}
+                    className="input flex-1"
+                    placeholder={`ราคาใบที่ ${i + 1}`}
+                  />
+                  {costsThb.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeCost(i)}
+                      className="shrink-0 rounded-md bg-red-50 px-2.5 py-2 text-xs font-medium text-red-600 hover:bg-red-100"
+                    >
+                      ลบ
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-            {Number(quantity) > 1 && costThb.trim() !== '' && !isNaN(Number(costThb)) && (
+            <button
+              type="button"
+              onClick={addCost}
+              className="mt-2 rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
+            >
+              + เพิ่มใบ
+            </button>
+            {costsThb.length > 1 && costsThb.every((c) => c.trim() !== '' && !isNaN(Number(c))) && (
               <p className="mt-1.5 text-[11px] text-slate-400">
-                รวมทั้งหมด {formatTHB(Number(costThb) * Number(quantity))} ({quantity} ใบ)
+                รวมทั้งหมด {formatTHB(costsThb.reduce((s, c) => s + Number(c), 0))} ({costsThb.length} ใบ)
               </p>
             )}
           </div>
