@@ -67,7 +67,9 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
 
   const image = card.custom_image_url || card.image_url
   const latest = history[0] || null
-  const profitInfo = !card.is_wishlist ? calcProfit(card.cost_thb, latest?.market_price_thb ?? null) : null
+  const qty = card.quantity ?? 1
+  const marketTotal = latest ? latest.market_price_thb * qty : null
+  const profitInfo = !card.is_wishlist ? calcProfit(card.cost_thb, marketTotal) : null
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-20 pt-6 sm:px-6">
@@ -85,9 +87,19 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
           )}
         </div>
         <div className="flex-1">
-          <span className="inline-block rounded-full bg-slate-900 px-2 py-0.5 text-[11px] font-semibold text-white">
-            {card.grade}
-          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="inline-block rounded-full bg-slate-900 px-2 py-0.5 text-[11px] font-semibold text-white">
+              {card.grade}
+            </span>
+            <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+              {card.category}
+            </span>
+            {qty > 1 && (
+              <span className="inline-block rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-semibold text-brand-700">
+                ×{qty} ใบ
+              </span>
+            )}
+          </div>
           <h1 className="mt-1 text-lg font-bold text-slate-900">{card.name}</h1>
           {card.snkrdunk_url && (
             <a
@@ -108,8 +120,12 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
         )}
         <InfoTile
           label="ราคาตลาดล่าสุด"
-          value={latest ? formatTHB(latest.market_price_thb) : 'ยังไม่มีราคา'}
-          hint={latest ? `${formatJPY(latest.market_price_jpy)} · อัปเดต ${formatRelative(latest.fetched_at)}` : undefined}
+          value={latest ? formatTHB(marketTotal) : 'ยังไม่มีราคา'}
+          hint={
+            latest
+              ? `${formatJPY(latest.market_price_jpy)}${qty > 1 ? ` × ${qty} ใบ` : ''} · อัปเดต ${formatRelative(latest.fetched_at)}`
+              : undefined
+          }
         />
         {!card.is_wishlist && profitInfo && (
           <>
