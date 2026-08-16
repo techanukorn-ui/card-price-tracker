@@ -58,6 +58,11 @@ function getProfitInfo(c: CardWithLatestPrice) {
   return calcProfit(c.cost_thb, marketTotal)
 }
 
+function getSoldProfitInfo(c: CardWithLatestPrice) {
+  if (c.sold_price_thb === null) return null
+  return calcProfit(c.cost_thb, c.sold_price_thb)
+}
+
 function applyFilters(
   list: CardWithLatestPrice[],
   search: string,
@@ -116,6 +121,40 @@ function applySort(list: CardWithLatestPrice[], sort: SortOption): CardWithLates
     case 'newest':
     default:
       arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      return arr
+  }
+}
+
+// Sold cards don't carry a meaningful latest market price to sort by, so
+// mirror applySort's option meanings using the realized sale instead.
+function applySoldSort(list: CardWithLatestPrice[], sort: SortOption): CardWithLatestPrice[] {
+  const arr = [...list]
+  switch (sort) {
+    case 'profit_amount_desc':
+      arr.sort((a, b) => (getSoldProfitInfo(b)?.profit ?? -Infinity) - (getSoldProfitInfo(a)?.profit ?? -Infinity))
+      return arr
+    case 'profit_amount_asc':
+      arr.sort((a, b) => (getSoldProfitInfo(a)?.profit ?? Infinity) - (getSoldProfitInfo(b)?.profit ?? Infinity))
+      return arr
+    case 'profit_margin_desc':
+      arr.sort(
+        (a, b) => (getSoldProfitInfo(b)?.marginPct ?? -Infinity) - (getSoldProfitInfo(a)?.marginPct ?? -Infinity)
+      )
+      return arr
+    case 'profit_margin_asc':
+      arr.sort(
+        (a, b) => (getSoldProfitInfo(a)?.marginPct ?? Infinity) - (getSoldProfitInfo(b)?.marginPct ?? Infinity)
+      )
+      return arr
+    case 'market_desc':
+      arr.sort((a, b) => (b.sold_price_thb ?? -1) - (a.sold_price_thb ?? -1))
+      return arr
+    case 'name_asc':
+      arr.sort((a, b) => a.name.localeCompare(b.name, 'th'))
+      return arr
+    case 'newest':
+    default:
+      arr.sort((a, b) => new Date(b.sold_at ?? b.created_at).getTime() - new Date(a.sold_at ?? a.created_at).getTime())
       return arr
   }
 }
@@ -221,8 +260,8 @@ function HomePageInner() {
     [wishlistCards, search, filterCategory, filterGrade, sortBy]
   )
   const visibleSoldCards = useMemo(
-    () => applyFilters(soldCards, search, filterCategory, filterGrade),
-    [soldCards, search, filterCategory, filterGrade]
+    () => applySoldSort(applyFilters(soldCards, search, filterCategory, filterGrade), sortBy),
+    [soldCards, search, filterCategory, filterGrade, sortBy]
   )
   const soldCardRenderItems = useMemo(() => groupBySequentialSet(visibleSoldCards), [visibleSoldCards])
 
