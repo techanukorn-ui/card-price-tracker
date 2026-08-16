@@ -123,7 +123,7 @@ function HomePageInner() {
   const [movingCard, setMovingCard] = useState<Card | null>(null)
 
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<SortOption>('newest')
+  const [sortBy, setSortBy] = useState<SortOption>('profit_amount_desc')
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterGrade, setFilterGrade] = useState('all')
 
