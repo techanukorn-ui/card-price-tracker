@@ -12,7 +12,7 @@ export interface PortfolioPoint {
 // price at-or-before that time (and is skipped from the value sum until it
 // has at least one snapshot).
 export function buildPortfolioSeries(cards: Card[], priceHistory: PriceHistory[]): PortfolioPoint[] {
-  const myCards = cards.filter((c) => !c.is_wishlist)
+  const myCards = cards.filter((c) => !c.is_wishlist && !c.is_sold)
   if (myCards.length === 0) return []
 
   const byCard = new Map<string, PriceHistory[]>()
