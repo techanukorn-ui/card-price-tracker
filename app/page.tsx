@@ -248,6 +248,39 @@ function HomePageInner() {
   async function handleUnsell(card: Card) {
     const ok = window.confirm(`ยกเลิกการขาย "${card.name}" ใช่ไหม? การ์ดจะย้ายกลับไปที่ "การ์ดของฉัน"`)
     if (!ok) return
+
+    if (card.sold_from_card_id) {
+      const { data: origin } = await supabase
+        .from('cards')
+        .select('*')
+        .eq('id', card.sold_from_card_id)
+        .maybeSingle()
+      if (origin && !origin.is_wishlist && !origin.is_sold) {
+        const mergedCosts = [...(origin.costs_thb || []), ...(card.costs_thb || [])]
+        const mergedCostTotal = mergedCosts.reduce((s: number, c: number) => s + c, 0)
+        const { error: mergeErr } = await supabase
+          .from('cards')
+          .update({
+            quantity: (origin.quantity ?? 1) + (card.quantity ?? 1),
+            costs_thb: mergedCosts,
+            cost_thb: mergedCostTotal,
+          })
+          .eq('id', origin.id)
+        if (mergeErr) {
+          alert('รวมกลับไม่สำเร็จ: ' + mergeErr.message)
+          return
+        }
+        const res = await fetch(`/api/cards/${card.id}`, { method: 'DELETE' })
+        const data = await res.json()
+        if (!res.ok || !data.success) {
+          alert('ลบรายการที่ขายไม่สำเร็จ: ' + (data.error || res.statusText))
+          return
+        }
+        loadData()
+        return
+      }
+    }
+
     const { error: updErr } = await supabase
       .from('cards')
       .update({ is_sold: false, sold_price_thb: null, sold_at: null })

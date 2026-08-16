@@ -72,6 +72,7 @@ export default function SellCardModal({ card, onClose, onSold }: Props) {
           sold_price_thb: price,
           sold_at: new Date().toISOString(),
           sequential_set_id: card.sequential_set_id,
+          sold_from_card_id: card.id,
         })
         if (insErr) throw insErr
 
