@@ -11,7 +11,7 @@ export const GRADE_OPTIONS = [
   'Other',
 ] as const
 
-export const CATEGORY_OPTIONS = ['Pokémon', 'One Piece', 'Sports', 'อื่นๆ'] as const
+export const CATEGORY_OPTIONS = ['Pokémon', 'One Piece', 'Sports', 'กล่องซีล', 'อื่นๆ'] as const
 
 export const RAW_CONDITION_OPTIONS = ['A', 'B', 'C', 'D'] as const
 
