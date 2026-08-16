@@ -40,6 +40,11 @@ alter table public.cards add column if not exists is_sold boolean not null defau
 alter table public.cards add column if not exists sold_price_thb numeric;
 alter table public.cards add column if not exists sold_at timestamptz;
 
+-- sequential_set_id: groups multiple different cards added together in one
+-- batch (e.g. "Suicune / Raikou / Entei" added at once) so they can be
+-- displayed clustered together. No separate "set name" — just a shared id.
+alter table public.cards add column if not exists sequential_set_id uuid;
+
 -- ============ price_history ============
 -- one row per price snapshot. never updated/overwritten, only inserted.
 create table if not exists public.price_history (

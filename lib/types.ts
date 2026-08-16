@@ -31,6 +31,7 @@ export interface Card {
   is_sold: boolean
   sold_price_thb: number | null
   sold_at: string | null
+  sequential_set_id: string | null
   created_at: string
 }
 

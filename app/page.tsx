@@ -9,6 +9,7 @@ import CardTile from '@/components/CardTile'
 import CardFormModal from '@/components/CardFormModal'
 import MoveToCollectionModal from '@/components/MoveToCollectionModal'
 import SellCardModal from '@/components/SellCardModal'
+import SequentialSetFormModal from '@/components/SequentialSetFormModal'
 import Dashboard from '@/components/Dashboard'
 
 type Tab = 'mine' | 'sold' | 'wishlist'
@@ -123,6 +124,7 @@ function HomePageInner() {
 
   const [movingCard, setMovingCard] = useState<Card | null>(null)
   const [sellingCard, setSellingCard] = useState<Card | null>(null)
+  const [sequentialSetFormOpen, setSequentialSetFormOpen] = useState(false)
 
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortOption>('profit_amount_desc')
@@ -189,6 +191,20 @@ function HomePageInner() {
     () => applySort(applyFilters(myCards, search, filterCategory, filterGrade), sortBy),
     [myCards, search, filterCategory, filterGrade, sortBy]
   )
+  const { sequentialSetGroups, ungroupedMyCards } = useMemo(() => {
+    const groups = new Map<string, CardWithLatestPrice[]>()
+    const ungrouped: CardWithLatestPrice[] = []
+    for (const c of visibleMyCards) {
+      if (c.sequential_set_id) {
+        const arr = groups.get(c.sequential_set_id) || []
+        arr.push(c)
+        groups.set(c.sequential_set_id, arr)
+      } else {
+        ungrouped.push(c)
+      }
+    }
+    return { sequentialSetGroups: Array.from(groups.entries()), ungroupedMyCards: ungrouped }
+  }, [visibleMyCards])
   const visibleWishlistCards = useMemo(
     () => applySort(applyFilters(wishlistCards, search, filterCategory, filterGrade), sortBy),
     [wishlistCards, search, filterCategory, filterGrade, sortBy]
@@ -318,12 +334,20 @@ function HomePageInner() {
           <div className="mb-4 mt-8 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-800">การ์ดของฉัน</h2>
             {!readOnly && (
-              <button
-                onClick={() => openAddForm('mine')}
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-              >
-                + เพิ่มการ์ด
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => openAddForm('mine')}
+                  className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+                >
+                  + เพิ่มการ์ด
+                </button>
+                <button
+                  onClick={() => setSequentialSetFormOpen(true)}
+                  className="rounded-lg bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-200"
+                >
+                  + Sequential Set
+                </button>
+              </div>
             )}
           </div>
 
@@ -332,20 +356,50 @@ function HomePageInner() {
           ) : visibleMyCards.length === 0 ? (
             <EmptyState text="ไม่พบการ์ดที่ตรงกับตัวกรอง" />
           ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {visibleMyCards.map((c) => (
-                <CardTile
-                  key={c.id}
-                  card={c}
-                  mode="mine"
-                  onEdit={() => openEditForm(c)}
-                  onDelete={() => handleDelete(c)}
-                  onSell={() => setSellingCard(c)}
-                  linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
-                  readOnly={readOnly}
-                />
-              ))}
-            </div>
+            <>
+              {sequentialSetGroups.length > 0 && (
+                <div className="mb-4 space-y-4">
+                  {sequentialSetGroups.map(([setId, groupCards]) => (
+                    <div key={setId} className="rounded-xl border-2 border-brand-200 bg-brand-50/40 p-3">
+                      <p className="mb-2 text-xs font-semibold text-brand-700">
+                        Sequential Set · {groupCards.length} ใบ
+                      </p>
+                      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                        {groupCards.map((c) => (
+                          <CardTile
+                            key={c.id}
+                            card={c}
+                            mode="mine"
+                            onEdit={() => openEditForm(c)}
+                            onDelete={() => handleDelete(c)}
+                            onSell={() => setSellingCard(c)}
+                            linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
+                            readOnly={readOnly}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {ungroupedMyCards.length > 0 && (
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                  {ungroupedMyCards.map((c) => (
+                    <CardTile
+                      key={c.id}
+                      card={c}
+                      mode="mine"
+                      onEdit={() => openEditForm(c)}
+                      onDelete={() => handleDelete(c)}
+                      onSell={() => setSellingCard(c)}
+                      linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
+                      readOnly={readOnly}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </>
       ) : tab === 'sold' ? (
@@ -456,6 +510,16 @@ function HomePageInner() {
           onClose={() => setSellingCard(null)}
           onSold={() => {
             setSellingCard(null)
+            loadData()
+          }}
+        />
+      )}
+
+      {!readOnly && sequentialSetFormOpen && (
+        <SequentialSetFormModal
+          onClose={() => setSequentialSetFormOpen(false)}
+          onSaved={() => {
+            setSequentialSetFormOpen(false)
             loadData()
           }}
         />
