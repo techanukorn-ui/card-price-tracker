@@ -17,7 +17,18 @@ export default function CardPriceChart({ history }: Props) {
     )
   }
 
-  const data = [...history]
+  // Collapse same-day snapshots down to the latest one per day, so the trend
+  // stays readable even when prices are pulled multiple times in one day.
+  const lastByDay = new Map<string, PriceHistory>()
+  for (const p of history) {
+    const day = p.fetched_at.slice(0, 10)
+    const existing = lastByDay.get(day)
+    if (!existing || new Date(p.fetched_at).getTime() > new Date(existing.fetched_at).getTime()) {
+      lastByDay.set(day, p)
+    }
+  }
+
+  const data = [...lastByDay.values()]
     .sort((a, b) => new Date(a.fetched_at).getTime() - new Date(b.fetched_at).getTime())
     .map((p) => ({
       fetched_at: p.fetched_at,

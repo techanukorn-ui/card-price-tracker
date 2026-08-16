@@ -31,7 +31,7 @@ export function buildPortfolioSeries(cards: Card[], priceHistory: PriceHistory[]
 
   if (timestamps.length === 0) return []
 
-  return timestamps.map((ts) => {
+  const points = timestamps.map((ts) => {
     const t = new Date(ts).getTime()
     let totalCost = 0
     let totalValue = 0
@@ -49,4 +49,12 @@ export function buildPortfolioSeries(cards: Card[], priceHistory: PriceHistory[]
     }
     return { date: ts, totalCost, totalValue }
   })
+
+  // Collapse same-day points down to the last one per day, so the trend
+  // stays readable even when prices are pulled multiple times in one day.
+  const lastByDay = new Map<string, PortfolioPoint>()
+  for (const p of points) {
+    lastByDay.set(p.date.slice(0, 10), p)
+  }
+  return Array.from(lastByDay.values())
 }
