@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { CATEGORY_OPTIONS, Card, CardWithLatestPrice, PriceHistory } from '@/lib/types'
 import { calcProfit } from '@/lib/format'
@@ -98,6 +99,17 @@ function applySort(list: CardWithLatestPrice[], sort: SortOption): CardWithLates
 }
 
 export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="py-20 text-center text-slate-400">กำลังโหลด...</div>}>
+      <HomePageInner />
+    </Suspense>
+  )
+}
+
+function HomePageInner() {
+  const searchParams = useSearchParams()
+  const readOnly = searchParams.get('readonly') === '1'
+
   const [tab, setTab] = useState<Tab>('mine')
   const [cards, setCards] = useState<Card[]>([])
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([])
@@ -257,12 +269,14 @@ export default function HomePage() {
 
           <div className="mb-4 mt-8 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-800">การ์ดของฉัน</h2>
-            <button
-              onClick={() => openAddForm('mine')}
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-            >
-              + เพิ่มการ์ด
-            </button>
+            {!readOnly && (
+              <button
+                onClick={() => openAddForm('mine')}
+                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+              >
+                + เพิ่มการ์ด
+              </button>
+            )}
           </div>
 
           {myCards.length === 0 ? (
@@ -278,7 +292,8 @@ export default function HomePage() {
                   mode="mine"
                   onEdit={() => openEditForm(c)}
                   onDelete={() => handleDelete(c)}
-                  linkHref={`/card/${c.id}`}
+                  linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
+                  readOnly={readOnly}
                 />
               ))}
             </div>
@@ -288,12 +303,14 @@ export default function HomePage() {
         <>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-800">Wishlist</h2>
-            <button
-              onClick={() => openAddForm('wishlist')}
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-            >
-              + เพิ่ม Wishlist
-            </button>
+            {!readOnly && (
+              <button
+                onClick={() => openAddForm('wishlist')}
+                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+              >
+                + เพิ่ม Wishlist
+              </button>
+            )}
           </div>
 
           {wishlistCards.length === 0 ? (
@@ -310,7 +327,8 @@ export default function HomePage() {
                   onEdit={() => openEditForm(c)}
                   onDelete={() => handleDelete(c)}
                   onMove={() => setMovingCard(c)}
-                  linkHref={`/card/${c.id}`}
+                  linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
+                  readOnly={readOnly}
                 />
               ))}
             </div>
@@ -318,7 +336,7 @@ export default function HomePage() {
         </>
       )}
 
-      {formOpen && (
+      {!readOnly && formOpen && (
         <CardFormModal
           mode={formMode}
           card={editingCard}
@@ -330,7 +348,7 @@ export default function HomePage() {
         />
       )}
 
-      {movingCard && (
+      {!readOnly && movingCard && (
         <MoveToCollectionModal
           card={movingCard}
           onClose={() => setMovingCard(null)}

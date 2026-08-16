@@ -11,9 +11,10 @@ interface Props {
   onDelete: () => void
   onMove?: () => void
   linkHref?: string
+  readOnly?: boolean
 }
 
-export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHref }: Props) {
+export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHref, readOnly }: Props) {
   const image = card.custom_image_url || card.image_url
   const qty = card.quantity ?? 1
   const unitMarketThb = card.latestPrice?.market_price_thb ?? null
@@ -92,28 +93,30 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHre
         body
       )}
 
-      <div className="mt-2 flex gap-1.5">
-        <button
-          onClick={onEdit}
-          className="flex-1 rounded-md bg-slate-100 px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
-        >
-          แก้ไข
-        </button>
-        {mode === 'wishlist' && onMove && (
+      {!readOnly && (
+        <div className="mt-2 flex gap-1.5">
           <button
-            onClick={onMove}
-            className="flex-1 rounded-md bg-brand-100 px-2 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-200"
+            onClick={onEdit}
+            className="flex-1 rounded-md bg-slate-100 px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
           >
-            ย้ายเข้าคอลเลกชัน
+            แก้ไข
           </button>
-        )}
-        <button
-          onClick={onDelete}
-          className="rounded-md bg-red-50 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100"
-        >
-          ลบ
-        </button>
-      </div>
+          {mode === 'wishlist' && onMove && (
+            <button
+              onClick={onMove}
+              className="flex-1 rounded-md bg-brand-100 px-2 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-200"
+            >
+              ย้ายเข้าคอลเลกชัน
+            </button>
+          )}
+          <button
+            onClick={onDelete}
+            className="rounded-md bg-red-50 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100"
+          >
+            ลบ
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,8 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { Card, PriceHistory } from '@/lib/types'
 import { calcProfit, formatDateTime, formatPct, formatRelative, formatSigned, formatTHB, formatJPY } from '@/lib/format'
@@ -10,7 +10,17 @@ import CardPriceChart from '@/components/CardPriceChart'
 import CardFormModal from '@/components/CardFormModal'
 
 export default function CardDetailPage({ params }: { params: { id: string } }) {
+  return (
+    <Suspense fallback={<main className="mx-auto max-w-2xl px-4 py-10 text-center text-slate-400">กำลังโหลด...</main>}>
+      <CardDetailPageInner params={params} />
+    </Suspense>
+  )
+}
+
+function CardDetailPageInner({ params }: { params: { id: string } }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const readOnly = searchParams.get('readonly') === '1'
   const [card, setCard] = useState<Card | null>(null)
   const [history, setHistory] = useState<PriceHistory[]>([])
   const [loading, setLoading] = useState(true)
@@ -58,7 +68,7 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
     return (
       <main className="mx-auto max-w-2xl px-4 py-10 text-center">
         <p className="text-slate-500">ไม่พบการ์ดนี้</p>
-        <Link href="/" className="mt-4 inline-block text-brand-600 underline">
+        <Link href={readOnly ? '/?readonly=1' : '/'} className="mt-4 inline-block text-brand-600 underline">
           กลับหน้าแรก
         </Link>
       </main>
@@ -75,7 +85,7 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-20 pt-6 sm:px-6">
-      <Link href="/" className="mb-4 inline-block text-sm text-brand-600">
+      <Link href={readOnly ? '/?readonly=1' : '/'} className="mb-4 inline-block text-sm text-brand-600">
         ← กลับ
       </Link>
 
@@ -179,22 +189,24 @@ export default function CardDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      <div className="mt-6 flex gap-2">
-        <button
-          onClick={() => setEditOpen(true)}
-          className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
-        >
-          แก้ไข
-        </button>
-        <button
-          onClick={handleDelete}
-          className="flex-1 rounded-lg bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100"
-        >
-          ลบการ์ด
-        </button>
-      </div>
+      {!readOnly && (
+        <div className="mt-6 flex gap-2">
+          <button
+            onClick={() => setEditOpen(true)}
+            className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+          >
+            แก้ไข
+          </button>
+          <button
+            onClick={handleDelete}
+            className="flex-1 rounded-lg bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100"
+          >
+            ลบการ์ด
+          </button>
+        </div>
+      )}
 
-      {editOpen && (
+      {!readOnly && editOpen && (
         <CardFormModal
           mode={card.is_wishlist ? 'wishlist' : 'mine'}
           card={card}
