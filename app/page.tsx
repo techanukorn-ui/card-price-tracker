@@ -36,6 +36,22 @@ const SORT_LABELS: Record<SortOption, string> = {
   name_asc: 'ชื่อ (ก-ฮ)',
 }
 
+function groupBySequentialSet(list: CardWithLatestPrice[]): MyCardRenderItem[] {
+  const seenSets = new Set<string>()
+  const items: MyCardRenderItem[] = []
+  for (const c of list) {
+    if (c.sequential_set_id) {
+      if (seenSets.has(c.sequential_set_id)) continue
+      seenSets.add(c.sequential_set_id)
+      const groupCards = list.filter((x) => x.sequential_set_id === c.sequential_set_id)
+      items.push({ type: 'set', setId: c.sequential_set_id, cards: groupCards })
+    } else {
+      items.push({ type: 'single', card: c })
+    }
+  }
+  return items
+}
+
 function getProfitInfo(c: CardWithLatestPrice) {
   if (!c.latestPrice) return null
   const marketTotal = c.latestPrice.market_price_thb * (c.quantity ?? 1)
@@ -199,21 +215,7 @@ function HomePageInner() {
   // Sequential Set cards stay clustered as one block, but the block is
   // positioned wherever its first (best-sorted) member lands, so sort order
   // is still respected instead of sets always floating to the top.
-  const myCardRenderItems = useMemo(() => {
-    const seenSets = new Set<string>()
-    const items: MyCardRenderItem[] = []
-    for (const c of visibleMyCards) {
-      if (c.sequential_set_id) {
-        if (seenSets.has(c.sequential_set_id)) continue
-        seenSets.add(c.sequential_set_id)
-        const groupCards = visibleMyCards.filter((x) => x.sequential_set_id === c.sequential_set_id)
-        items.push({ type: 'set', setId: c.sequential_set_id, cards: groupCards })
-      } else {
-        items.push({ type: 'single', card: c })
-      }
-    }
-    return items
-  }, [visibleMyCards])
+  const myCardRenderItems = useMemo(() => groupBySequentialSet(visibleMyCards), [visibleMyCards])
   const visibleWishlistCards = useMemo(
     () => applySort(applyFilters(wishlistCards, search, filterCategory, filterGrade), sortBy),
     [wishlistCards, search, filterCategory, filterGrade, sortBy]
@@ -222,6 +224,7 @@ function HomePageInner() {
     () => applyFilters(soldCards, search, filterCategory, filterGrade),
     [soldCards, search, filterCategory, filterGrade]
   )
+  const soldCardRenderItems = useMemo(() => groupBySequentialSet(visibleSoldCards), [visibleSoldCards])
 
   function openAddForm(mode: 'mine' | 'wishlist') {
     setFormMode(mode)
@@ -247,10 +250,10 @@ function HomePageInner() {
     loadData()
   }
 
-  async function handleUnsell(card: Card) {
-    const ok = window.confirm(`ยกเลิกการขาย "${card.name}" ใช่ไหม? การ์ดจะย้ายกลับไปที่ "การ์ดของฉัน"`)
-    if (!ok) return
-
+  // Reverts one sold card, merging it back into its origin row if it was a
+  // partial-sale split. No confirm dialog and no loadData — callers do both,
+  // so a whole-set unsell can confirm once and reload once at the end.
+  async function unsellCard(card: Card): Promise<string | null> {
     if (card.sold_from_card_id) {
       const { data: origin } = await supabase
         .from('cards')
@@ -268,18 +271,12 @@ function HomePageInner() {
             cost_thb: mergedCostTotal,
           })
           .eq('id', origin.id)
-        if (mergeErr) {
-          alert('รวมกลับไม่สำเร็จ: ' + mergeErr.message)
-          return
-        }
+        if (mergeErr) return 'รวมกลับไม่สำเร็จ: ' + mergeErr.message
+
         const res = await fetch(`/api/cards/${card.id}`, { method: 'DELETE' })
         const data = await res.json()
-        if (!res.ok || !data.success) {
-          alert('ลบรายการที่ขายไม่สำเร็จ: ' + (data.error || res.statusText))
-          return
-        }
-        loadData()
-        return
+        if (!res.ok || !data.success) return 'ลบรายการที่ขายไม่สำเร็จ: ' + (data.error || res.statusText)
+        return null
       }
     }
 
@@ -287,9 +284,33 @@ function HomePageInner() {
       .from('cards')
       .update({ is_sold: false, sold_price_thb: null, sold_at: null })
       .eq('id', card.id)
-    if (updErr) {
-      alert('ยกเลิกไม่สำเร็จ: ' + updErr.message)
+    if (updErr) return 'ยกเลิกไม่สำเร็จ: ' + updErr.message
+    return null
+  }
+
+  async function handleUnsell(card: Card) {
+    const ok = window.confirm(`ยกเลิกการขาย "${card.name}" ใช่ไหม? การ์ดจะย้ายกลับไปที่ "การ์ดของฉัน"`)
+    if (!ok) return
+    const err = await unsellCard(card)
+    if (err) {
+      alert(err)
       return
+    }
+    loadData()
+  }
+
+  async function handleUnsellSet(cardsToUnsell: Card[]) {
+    const ok = window.confirm(
+      `ยกเลิกการขายทั้งเซ็ต (${cardsToUnsell.length} ใบ) ใช่ไหม? การ์ดทุกใบจะย้ายกลับไปที่ "การ์ดของฉัน"`
+    )
+    if (!ok) return
+    for (const c of cardsToUnsell) {
+      const err = await unsellCard(c)
+      if (err) {
+        alert(err)
+        loadData()
+        return
+      }
     }
     loadData()
   }
@@ -474,18 +495,51 @@ function HomePageInner() {
             <EmptyState text="ไม่พบการ์ดที่ตรงกับตัวกรอง" />
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {visibleSoldCards.map((c) => (
-                <CardTile
-                  key={c.id}
-                  card={c}
-                  mode="sold"
-                  onEdit={() => openEditForm(c)}
-                  onDelete={() => handleDelete(c)}
-                  onUnsell={() => handleUnsell(c)}
-                  linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
-                  readOnly={readOnly}
-                />
-              ))}
+              {soldCardRenderItems.map((item) =>
+                item.type === 'set' ? (
+                  <div
+                    key={item.setId}
+                    className="col-span-2 rounded-xl border-2 border-brand-200 bg-brand-50/40 p-3 sm:col-span-3 lg:col-span-4"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-xs font-semibold text-brand-700">Sequential Set · {item.cards.length} ใบ</p>
+                      {!readOnly && (
+                        <button
+                          onClick={() => handleUnsellSet(item.cards)}
+                          className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200"
+                        >
+                          ยกเลิกขายทั้งเซ็ต
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                      {item.cards.map((c) => (
+                        <CardTile
+                          key={c.id}
+                          card={c}
+                          mode="sold"
+                          onEdit={() => openEditForm(c)}
+                          onDelete={() => handleDelete(c)}
+                          onUnsell={() => handleUnsell(c)}
+                          linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
+                          readOnly={readOnly}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <CardTile
+                    key={item.card.id}
+                    card={item.card}
+                    mode="sold"
+                    onEdit={() => openEditForm(item.card)}
+                    onDelete={() => handleDelete(item.card)}
+                    onUnsell={() => handleUnsell(item.card)}
+                    linkHref={readOnly ? `/card/${item.card.id}?readonly=1` : `/card/${item.card.id}`}
+                    readOnly={readOnly}
+                  />
+                )
+              )}
             </div>
           )}
         </>
