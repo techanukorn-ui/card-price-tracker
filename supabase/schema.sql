@@ -29,6 +29,10 @@ alter table public.cards add column if not exists quantity integer not null defa
 alter table public.cards add column if not exists costs_thb numeric[];
 update public.cards set costs_thb = array[cost_thb] where cost_thb is not null and costs_thb is null;
 
+-- raw_condition: SNKRDUNK ungraded condition tier (A/B/C/D), only meaningful
+-- when grade = 'Raw'. Used to pick the matching sold-price history on SNKRDUNK.
+alter table public.cards add column if not exists raw_condition text;
+
 -- ============ price_history ============
 -- one row per price snapshot. never updated/overwritten, only inserted.
 create table if not exists public.price_history (

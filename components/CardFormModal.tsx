@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Card, CATEGORY_OPTIONS, GRADE_OPTIONS } from '@/lib/types'
+import { Card, CATEGORY_OPTIONS, GRADE_OPTIONS, RAW_CONDITION_OPTIONS } from '@/lib/types'
 import { formatTHB } from '@/lib/format'
 import Modal from './Modal'
 
@@ -24,6 +24,7 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
   const [name, setName] = useState(card?.name || '')
   const [category, setCategory] = useState(card?.category || 'Pokémon')
   const [grade, setGrade] = useState(card?.grade || 'PSA10')
+  const [rawCondition, setRawCondition] = useState(card?.raw_condition || 'A')
   const [costsThb, setCostsThb] = useState<string[]>(initialCosts(card))
   const [snkrdunkUrl, setSnkrdunkUrl] = useState(card?.snkrdunk_url || '')
   const [file, setFile] = useState<File | null>(null)
@@ -77,6 +78,7 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
         name: name.trim(),
         category,
         grade,
+        raw_condition: grade === 'Raw' ? rawCondition : null,
         cost_thb: mode === 'mine' ? parsedCosts.reduce((s, c) => s + c, 0) : null,
         costs_thb: mode === 'mine' ? parsedCosts : null,
         quantity: mode === 'mine' ? parsedCosts.length : 1,
@@ -142,6 +144,18 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
             ))}
           </select>
         </Field>
+
+        {grade === 'Raw' && (
+          <Field label="สภาพ (A/B/C/D)">
+            <select value={rawCondition} onChange={(e) => setRawCondition(e.target.value)} className="input">
+              {RAW_CONDITION_OPTIONS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
 
         {mode === 'mine' && (
           <div>

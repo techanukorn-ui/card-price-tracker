@@ -102,7 +102,7 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="inline-block rounded-full bg-slate-900 px-2 py-0.5 text-[11px] font-semibold text-white">
-              {card.grade}
+              {card.grade === 'Raw' && card.raw_condition ? `Raw (${card.raw_condition})` : card.grade}
             </span>
             <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
               {card.category}

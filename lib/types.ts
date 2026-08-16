@@ -13,10 +13,13 @@ export const GRADE_OPTIONS = [
 
 export const CATEGORY_OPTIONS = ['Pokémon', 'One Piece', 'Sports', 'อื่นๆ'] as const
 
+export const RAW_CONDITION_OPTIONS = ['A', 'B', 'C', 'D'] as const
+
 export interface Card {
   id: string
   name: string
   grade: string
+  raw_condition: string | null
   category: string
   quantity: number
   cost_thb: number | null
