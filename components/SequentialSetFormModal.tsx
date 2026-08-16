@@ -12,10 +12,11 @@ interface Props {
 interface Row {
   name: string
   cost: string
+  snkrdunkUrl: string
 }
 
 function emptyRow(): Row {
-  return { name: '', cost: '' }
+  return { name: '', cost: '', snkrdunkUrl: '' }
 }
 
 export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
@@ -67,7 +68,7 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
           cost_thb: cost,
           costs_thb: [cost],
           quantity: 1,
-          snkrdunk_url: null,
+          snkrdunk_url: row.snkrdunkUrl.trim() || null,
           custom_image_url: null,
           is_wishlist: false,
           sequential_set_id: sequentialSetId,
@@ -130,32 +131,40 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
 
         <div>
           <span className="mb-1 block text-xs font-medium text-slate-600">การ์ดในชุด</span>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {rows.map((r, i) => (
-              <div key={i} className="flex items-center gap-2">
+              <div key={i} className="space-y-2 rounded-lg border border-slate-200 p-2.5">
+                <div className="flex items-center gap-2">
+                  <input
+                    value={r.name}
+                    onChange={(e) => updateRow(i, 'name', e.target.value)}
+                    className="input flex-1"
+                    placeholder={`ชื่อการ์ดใบที่ ${i + 1}`}
+                  />
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={r.cost}
+                    onChange={(e) => updateRow(i, 'cost', e.target.value)}
+                    className="input !w-24"
+                    placeholder="ราคา"
+                  />
+                  {rows.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => removeRow(i)}
+                      className="shrink-0 rounded-md bg-red-50 px-2.5 py-2 text-xs font-medium text-red-600 hover:bg-red-100"
+                    >
+                      ลบ
+                    </button>
+                  )}
+                </div>
                 <input
-                  value={r.name}
-                  onChange={(e) => updateRow(i, 'name', e.target.value)}
-                  className="input flex-1"
-                  placeholder={`ชื่อการ์ดใบที่ ${i + 1}`}
+                  value={r.snkrdunkUrl}
+                  onChange={(e) => updateRow(i, 'snkrdunkUrl', e.target.value)}
+                  className="input"
+                  placeholder="SNKRDUNK URL (ถ้ามี)"
                 />
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={r.cost}
-                  onChange={(e) => updateRow(i, 'cost', e.target.value)}
-                  className="input !w-24"
-                  placeholder="ราคา"
-                />
-                {rows.length > 2 && (
-                  <button
-                    type="button"
-                    onClick={() => removeRow(i)}
-                    className="shrink-0 rounded-md bg-red-50 px-2.5 py-2 text-xs font-medium text-red-600 hover:bg-red-100"
-                  >
-                    ลบ
-                  </button>
-                )}
               </div>
             ))}
           </div>
