@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { Card } from '@/lib/types'
+import { formatTHB } from '@/lib/format'
 import Modal from './Modal'
 
 interface Props {
@@ -13,18 +14,27 @@ interface Props {
 
 export default function SellCardModal({ card, onClose, onSold }: Props) {
   const totalQty = card.quantity ?? 1
-  const [qtySold, setQtySold] = useState(totalQty.toString())
+  const costs = card.costs_thb && card.costs_thb.length > 0 ? card.costs_thb : card.cost_thb !== null ? [card.cost_thb] : []
+
+  const [selectedIndices, setSelectedIndices] = useState<number[]>(costs.map((_, i) => i))
   const [soldPriceThb, setSoldPriceThb] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  function toggleIndex(i: number) {
+    setSelectedIndices((prev) =>
+      prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i].sort((a, b) => a - b)
+    )
+  }
+
+  const selectedCostTotal = selectedIndices.reduce((s, i) => s + (costs[i] ?? 0), 0)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
 
-    const qty = Number(qtySold)
-    if (qtySold.trim() === '' || isNaN(qty) || qty < 1 || qty > totalQty) {
-      setError(`กรุณากรอกจำนวนที่ขายเป็นตัวเลข 1-${totalQty}`)
+    if (selectedIndices.length < 1) {
+      setError('กรุณาเลือกใบที่จะขายอย่างน้อย 1 ใบ')
       return
     }
     if (soldPriceThb.trim() === '' || isNaN(Number(soldPriceThb))) {
@@ -34,10 +44,9 @@ export default function SellCardModal({ card, onClose, onSold }: Props) {
 
     setSaving(true)
     const price = Number(soldPriceThb)
-    const costs = card.costs_thb && card.costs_thb.length > 0 ? card.costs_thb : card.cost_thb !== null ? [card.cost_thb] : []
 
     try {
-      if (qty >= totalQty) {
+      if (selectedIndices.length >= totalQty) {
         // sell the whole card entry as-is
         const { error: updErr } = await supabase
           .from('cards')
@@ -49,10 +58,10 @@ export default function SellCardModal({ card, onClose, onSold }: Props) {
           .eq('id', card.id)
         if (updErr) throw updErr
       } else {
-        // partial sale: split off `qty` copies into a new sold card entry,
-        // keep the rest (with their own costs) on the original entry
-        const soldCosts = costs.slice(0, qty)
-        const remainingCosts = costs.slice(qty)
+        // partial sale: split off the selected copies into a new sold card
+        // entry, keep the rest (with their own costs) on the original entry
+        const soldCosts = selectedIndices.map((i) => costs[i])
+        const remainingCosts = costs.filter((_, i) => !selectedIndices.includes(i))
         const soldCostTotal = soldCosts.reduce((s, c) => s + c, 0)
         const remainingCostTotal = remainingCosts.reduce((s, c) => s + c, 0)
 
@@ -63,7 +72,7 @@ export default function SellCardModal({ card, onClose, onSold }: Props) {
           raw_condition: card.raw_condition,
           cost_thb: soldCostTotal,
           costs_thb: soldCosts,
-          quantity: qty,
+          quantity: soldCosts.length,
           snkrdunk_url: card.snkrdunk_url,
           image_url: card.image_url,
           custom_image_url: card.custom_image_url,
@@ -81,7 +90,7 @@ export default function SellCardModal({ card, onClose, onSold }: Props) {
           .update({
             cost_thb: remainingCostTotal,
             costs_thb: remainingCosts,
-            quantity: totalQty - qty,
+            quantity: remainingCosts.length,
           })
           .eq('id', card.id)
         if (updErr) throw updErr
@@ -100,30 +109,33 @@ export default function SellCardModal({ card, onClose, onSold }: Props) {
     <Modal title={`ทำเครื่องหมายว่าขาย "${card.name}" แล้ว`} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {totalQty > 1 && (
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-slate-600">
-              จำนวนที่ขาย (มีทั้งหมด {totalQty} ใบ)
-            </span>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={totalQty}
-              value={qtySold}
-              onChange={(e) => setQtySold(e.target.value)}
-              className="input"
-            />
-            {Number(qtySold) > 0 && Number(qtySold) < totalQty && (
-              <p className="mt-1 text-[11px] text-slate-400">
-                เหลือ {totalQty - Number(qtySold)} ใบในคอลเลกชัน ที่เหลือจะยังไม่ถือว่าขาย
+          <div>
+            <span className="mb-1 block text-xs font-medium text-slate-600">เลือกใบที่จะขาย ({totalQty} ใบ)</span>
+            <div className="space-y-1.5">
+              {costs.map((c, i) => (
+                <label
+                  key={i}
+                  className="flex items-center gap-2 rounded-md border border-slate-200 px-2.5 py-1.5 text-sm"
+                >
+                  <input type="checkbox" checked={selectedIndices.includes(i)} onChange={() => toggleIndex(i)} />
+                  <span>
+                    ใบที่ {i + 1} — ต้นทุน {formatTHB(c)}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {selectedIndices.length > 0 && (
+              <p className="mt-1.5 text-[11px] text-slate-400">
+                เลือก {selectedIndices.length} ใบ ต้นทุนรวม {formatTHB(selectedCostTotal)}
+                {selectedIndices.length < totalQty && ` · เหลือ ${totalQty - selectedIndices.length} ใบในคอลเลกชัน`}
               </p>
             )}
-          </label>
+          </div>
         )}
 
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-slate-600">
-            ราคาที่ขายได้ {totalQty > 1 ? `(รวม ${qtySold || '?'} ใบที่ขาย, บาท)` : '(บาท)'}
+            ราคาที่ขายได้ {totalQty > 1 ? `(รวม ${selectedIndices.length} ใบที่เลือก, บาท)` : '(บาท)'}
           </span>
           <input
             type="number"
