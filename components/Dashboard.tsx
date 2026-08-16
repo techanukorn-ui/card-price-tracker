@@ -15,7 +15,7 @@ interface Props {
 }
 
 export default function Dashboard({ cards, priceHistory, latestPriceByCard }: Props) {
-  const myCards = useMemo(() => cards.filter((c) => !c.is_wishlist && !c.is_sold), [cards])
+  const myCards = useMemo(() => cards.filter((c) => !c.is_wishlist), [cards])
 
   const stats = useMemo(() => {
     let totalCost = 0

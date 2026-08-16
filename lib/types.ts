@@ -25,9 +25,6 @@ export interface Card {
   image_url: string | null
   custom_image_url: string | null
   is_wishlist: boolean
-  is_sold: boolean
-  sold_price_thb: number | null
-  sold_at: string | null
   created_at: string
 }
 
