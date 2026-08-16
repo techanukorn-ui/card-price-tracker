@@ -86,11 +86,21 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
       }
 
       if (isEdit && card) {
-        const { error: updErr } = await supabase.from('cards').update(payload).eq('id', card.id)
-        if (updErr) throw updErr
+        const res = await fetch(`/api/cards/${card.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const data = await res.json()
+        if (!res.ok || !data.success) throw new Error(data.error || 'บันทึกไม่สำเร็จ')
       } else {
-        const { error: insErr } = await supabase.from('cards').insert(payload)
-        if (insErr) throw insErr
+        const res = await fetch('/api/cards', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const data = await res.json()
+        if (!res.ok || !data.success) throw new Error(data.error || 'บันทึกไม่สำเร็จ')
       }
 
       onSaved()

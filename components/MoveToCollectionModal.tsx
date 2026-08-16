@@ -1,7 +1,6 @@
 'use client'
 
 import { FormEvent, useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
 import { Card } from '@/lib/types'
 import Modal from './Modal'
 
@@ -24,13 +23,20 @@ export default function MoveToCollectionModal({ card, onClose, onMoved }: Props)
     }
     setSaving(true)
     setError(null)
-    const { error: updErr } = await supabase
-      .from('cards')
-      .update({ is_wishlist: false, cost_thb: Number(costThb), costs_thb: [Number(costThb)], quantity: 1 })
-      .eq('id', card.id)
+    const res = await fetch(`/api/cards/${card.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        is_wishlist: false,
+        cost_thb: Number(costThb),
+        costs_thb: [Number(costThb)],
+        quantity: 1,
+      }),
+    })
+    const data = await res.json()
     setSaving(false)
-    if (updErr) {
-      setError(updErr.message)
+    if (!res.ok || !data.success) {
+      setError(data.error || 'บันทึกไม่สำเร็จ')
       return
     }
     onMoved()

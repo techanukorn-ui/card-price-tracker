@@ -188,9 +188,10 @@ function HomePageInner() {
   async function handleDelete(card: Card) {
     const ok = window.confirm(`ลบ "${card.name}" ใช่ไหม? การกระทำนี้ย้อนกลับไม่ได้`)
     if (!ok) return
-    const { error: delErr } = await supabase.from('cards').delete().eq('id', card.id)
-    if (delErr) {
-      alert('ลบไม่สำเร็จ: ' + delErr.message)
+    const res = await fetch(`/api/cards/${card.id}`, { method: 'DELETE' })
+    const data = await res.json()
+    if (!res.ok || !data.success) {
+      alert('ลบไม่สำเร็จ: ' + (data.error || res.statusText))
       return
     }
     loadData()

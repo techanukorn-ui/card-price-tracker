@@ -52,9 +52,10 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
     if (!card) return
     const ok = window.confirm(`ลบ "${card.name}" ใช่ไหม? การกระทำนี้ย้อนกลับไม่ได้`)
     if (!ok) return
-    const { error } = await supabase.from('cards').delete().eq('id', card.id)
-    if (error) {
-      alert('ลบไม่สำเร็จ: ' + error.message)
+    const res = await fetch(`/api/cards/${card.id}`, { method: 'DELETE' })
+    const data = await res.json()
+    if (!res.ok || !data.success) {
+      alert('ลบไม่สำเร็จ: ' + (data.error || res.statusText))
       return
     }
     router.push('/')
