@@ -13,6 +13,9 @@ import SequentialSetFormModal from '@/components/SequentialSetFormModal'
 import Dashboard from '@/components/Dashboard'
 
 type Tab = 'mine' | 'sold' | 'wishlist'
+type MyCardRenderItem =
+  | { type: 'single'; card: CardWithLatestPrice }
+  | { type: 'set'; setId: string; cards: CardWithLatestPrice[] }
 type SortOption =
   | 'newest'
   | 'profit_amount_desc'
@@ -191,19 +194,23 @@ function HomePageInner() {
     () => applySort(applyFilters(myCards, search, filterCategory, filterGrade), sortBy),
     [myCards, search, filterCategory, filterGrade, sortBy]
   )
-  const { sequentialSetGroups, ungroupedMyCards } = useMemo(() => {
-    const groups = new Map<string, CardWithLatestPrice[]>()
-    const ungrouped: CardWithLatestPrice[] = []
+  // Sequential Set cards stay clustered as one block, but the block is
+  // positioned wherever its first (best-sorted) member lands, so sort order
+  // is still respected instead of sets always floating to the top.
+  const myCardRenderItems = useMemo(() => {
+    const seenSets = new Set<string>()
+    const items: MyCardRenderItem[] = []
     for (const c of visibleMyCards) {
       if (c.sequential_set_id) {
-        const arr = groups.get(c.sequential_set_id) || []
-        arr.push(c)
-        groups.set(c.sequential_set_id, arr)
+        if (seenSets.has(c.sequential_set_id)) continue
+        seenSets.add(c.sequential_set_id)
+        const groupCards = visibleMyCards.filter((x) => x.sequential_set_id === c.sequential_set_id)
+        items.push({ type: 'set', setId: c.sequential_set_id, cards: groupCards })
       } else {
-        ungrouped.push(c)
+        items.push({ type: 'single', card: c })
       }
     }
-    return { sequentialSetGroups: Array.from(groups.entries()), ungroupedMyCards: ungrouped }
+    return items
   }, [visibleMyCards])
   const visibleWishlistCards = useMemo(
     () => applySort(applyFilters(wishlistCards, search, filterCategory, filterGrade), sortBy),
@@ -356,50 +363,45 @@ function HomePageInner() {
           ) : visibleMyCards.length === 0 ? (
             <EmptyState text="ไม่พบการ์ดที่ตรงกับตัวกรอง" />
           ) : (
-            <>
-              {sequentialSetGroups.length > 0 && (
-                <div className="mb-4 space-y-4">
-                  {sequentialSetGroups.map(([setId, groupCards]) => (
-                    <div key={setId} className="rounded-xl border-2 border-brand-200 bg-brand-50/40 p-3">
-                      <p className="mb-2 text-xs font-semibold text-brand-700">
-                        Sequential Set · {groupCards.length} ใบ
-                      </p>
-                      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                        {groupCards.map((c) => (
-                          <CardTile
-                            key={c.id}
-                            card={c}
-                            mode="mine"
-                            onEdit={() => openEditForm(c)}
-                            onDelete={() => handleDelete(c)}
-                            onSell={() => setSellingCard(c)}
-                            linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
-                            readOnly={readOnly}
-                          />
-                        ))}
-                      </div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {myCardRenderItems.map((item) =>
+                item.type === 'set' ? (
+                  <div
+                    key={item.setId}
+                    className="col-span-2 rounded-xl border-2 border-brand-200 bg-brand-50/40 p-3 sm:col-span-3 lg:col-span-4"
+                  >
+                    <p className="mb-2 text-xs font-semibold text-brand-700">
+                      Sequential Set · {item.cards.length} ใบ
+                    </p>
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                      {item.cards.map((c) => (
+                        <CardTile
+                          key={c.id}
+                          card={c}
+                          mode="mine"
+                          onEdit={() => openEditForm(c)}
+                          onDelete={() => handleDelete(c)}
+                          onSell={() => setSellingCard(c)}
+                          linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
+                          readOnly={readOnly}
+                        />
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <CardTile
+                    key={item.card.id}
+                    card={item.card}
+                    mode="mine"
+                    onEdit={() => openEditForm(item.card)}
+                    onDelete={() => handleDelete(item.card)}
+                    onSell={() => setSellingCard(item.card)}
+                    linkHref={readOnly ? `/card/${item.card.id}?readonly=1` : `/card/${item.card.id}`}
+                    readOnly={readOnly}
+                  />
+                )
               )}
-
-              {ungroupedMyCards.length > 0 && (
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                  {ungroupedMyCards.map((c) => (
-                    <CardTile
-                      key={c.id}
-                      card={c}
-                      mode="mine"
-                      onEdit={() => openEditForm(c)}
-                      onDelete={() => handleDelete(c)}
-                      onSell={() => setSellingCard(c)}
-                      linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
-                      readOnly={readOnly}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
+            </div>
           )}
         </>
       ) : tab === 'sold' ? (
