@@ -9,6 +9,7 @@ import CardTile from '@/components/CardTile'
 import CardFormModal from '@/components/CardFormModal'
 import MoveToCollectionModal from '@/components/MoveToCollectionModal'
 import SellCardModal from '@/components/SellCardModal'
+import SellSequentialSetModal from '@/components/SellSequentialSetModal'
 import SequentialSetFormModal from '@/components/SequentialSetFormModal'
 import Dashboard from '@/components/Dashboard'
 
@@ -127,6 +128,7 @@ function HomePageInner() {
 
   const [movingCard, setMovingCard] = useState<Card | null>(null)
   const [sellingCard, setSellingCard] = useState<Card | null>(null)
+  const [sellingSet, setSellingSet] = useState<CardWithLatestPrice[] | null>(null)
   const [sequentialSetFormOpen, setSequentialSetFormOpen] = useState(false)
 
   const [search, setSearch] = useState('')
@@ -403,9 +405,17 @@ function HomePageInner() {
                     key={item.setId}
                     className="col-span-2 rounded-xl border-2 border-brand-200 bg-brand-50/40 p-3 sm:col-span-3 lg:col-span-4"
                   >
-                    <p className="mb-2 text-xs font-semibold text-brand-700">
-                      Sequential Set · {item.cards.length} ใบ
-                    </p>
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-xs font-semibold text-brand-700">Sequential Set · {item.cards.length} ใบ</p>
+                      {!readOnly && (
+                        <button
+                          onClick={() => setSellingSet(item.cards)}
+                          className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+                        >
+                          ขายทั้งเซ็ต
+                        </button>
+                      )}
+                    </div>
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                       {item.cards.map((c) => (
                         <CardTile
@@ -555,6 +565,17 @@ function HomePageInner() {
           onClose={() => setSequentialSetFormOpen(false)}
           onSaved={() => {
             setSequentialSetFormOpen(false)
+            loadData()
+          }}
+        />
+      )}
+
+      {!readOnly && sellingSet && (
+        <SellSequentialSetModal
+          cards={sellingSet}
+          onClose={() => setSellingSet(null)}
+          onSold={() => {
+            setSellingSet(null)
             loadData()
           }}
         />
