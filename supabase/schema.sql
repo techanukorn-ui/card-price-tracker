@@ -33,6 +33,13 @@ update public.cards set costs_thb = array[cost_thb] where cost_thb is not null a
 -- when grade = 'Raw'. Used to pick the matching sold-price history on SNKRDUNK.
 alter table public.cards add column if not exists raw_condition text;
 
+-- sold tracking: mark a card as sold with the price it actually sold for,
+-- so realized profit (sold_price_thb - cost_thb) can be shown separately
+-- from the unrealized profit/loss of cards still held.
+alter table public.cards add column if not exists is_sold boolean not null default false;
+alter table public.cards add column if not exists sold_price_thb numeric;
+alter table public.cards add column if not exists sold_at timestamptz;
+
 -- ============ price_history ============
 -- one row per price snapshot. never updated/overwritten, only inserted.
 create table if not exists public.price_history (

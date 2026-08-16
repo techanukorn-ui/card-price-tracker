@@ -82,7 +82,8 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
   const marketTotal = latest ? latest.market_price_thb * qty : null
   const marketTotalJpy = latest ? latest.market_price_jpy * qty : null
   const totalCostThb = card.cost_thb ?? null
-  const profitInfo = !card.is_wishlist ? calcProfit(totalCostThb, marketTotal) : null
+  const profitInfo = !card.is_wishlist && !card.is_sold ? calcProfit(totalCostThb, marketTotal) : null
+  const soldProfitInfo = card.is_sold ? calcProfit(totalCostThb, card.sold_price_thb) : null
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-20 pt-6 sm:px-6">
@@ -167,6 +168,23 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
               value={formatPct(profitInfo.marginPct)}
               tone={profitInfo.marginPct >= 0 ? 'positive' : 'negative'}
             />
+          </>
+        )}
+        {card.is_sold && (
+          <>
+            <InfoTile
+              label="ขายได้"
+              value={formatTHB(card.sold_price_thb)}
+              hint={card.sold_at ? `ขายเมื่อ ${formatRelative(card.sold_at)}` : undefined}
+            />
+            {soldProfitInfo && (
+              <InfoTile
+                label="กำไรที่รับรู้แล้ว"
+                value={formatSigned(soldProfitInfo.profit, formatTHB)}
+                hint={formatPct(soldProfitInfo.marginPct)}
+                tone={soldProfitInfo.profit >= 0 ? 'positive' : 'negative'}
+              />
+            )}
           </>
         )}
       </div>

@@ -4,13 +4,14 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { CATEGORY_OPTIONS, Card, CardWithLatestPrice, PriceHistory } from '@/lib/types'
-import { calcProfit } from '@/lib/format'
+import { calcProfit, formatPct, formatSigned, formatTHB } from '@/lib/format'
 import CardTile from '@/components/CardTile'
 import CardFormModal from '@/components/CardFormModal'
 import MoveToCollectionModal from '@/components/MoveToCollectionModal'
+import SellCardModal from '@/components/SellCardModal'
 import Dashboard from '@/components/Dashboard'
 
-type Tab = 'mine' | 'wishlist'
+type Tab = 'mine' | 'sold' | 'wishlist'
 type SortOption =
   | 'newest'
   | 'profit_amount_desc'
@@ -121,6 +122,7 @@ function HomePageInner() {
   const [formMode, setFormMode] = useState<'mine' | 'wishlist'>('mine')
 
   const [movingCard, setMovingCard] = useState<Card | null>(null)
+  const [sellingCard, setSellingCard] = useState<Card | null>(null)
 
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortOption>('profit_amount_desc')
@@ -156,8 +158,27 @@ function HomePageInner() {
   const withLatest = (list: Card[]): CardWithLatestPrice[] =>
     list.map((c) => ({ ...c, latestPrice: latestPriceByCard.get(c.id) || null }))
 
-  const myCards = useMemo(() => withLatest(cards.filter((c) => !c.is_wishlist)), [cards, latestPriceByCard])
+  const myCards = useMemo(
+    () => withLatest(cards.filter((c) => !c.is_wishlist && !c.is_sold)),
+    [cards, latestPriceByCard]
+  )
+  const soldCards = useMemo(
+    () => withLatest(cards.filter((c) => !c.is_wishlist && c.is_sold)),
+    [cards, latestPriceByCard]
+  )
   const wishlistCards = useMemo(() => withLatest(cards.filter((c) => c.is_wishlist)), [cards, latestPriceByCard])
+
+  const soldStats = useMemo(() => {
+    let totalCost = 0
+    let totalSold = 0
+    for (const c of soldCards) {
+      totalCost += c.cost_thb ?? 0
+      totalSold += c.sold_price_thb ?? 0
+    }
+    const profit = totalSold - totalCost
+    const marginPct = totalCost === 0 ? 0 : (profit / totalCost) * 100
+    return { totalCost, totalSold, profit, marginPct }
+  }, [soldCards])
 
   const gradeOptions = useMemo(() => {
     const set = new Set(cards.map((c) => c.grade).filter(Boolean))
@@ -171,6 +192,10 @@ function HomePageInner() {
   const visibleWishlistCards = useMemo(
     () => applySort(applyFilters(wishlistCards, search, filterCategory, filterGrade), sortBy),
     [wishlistCards, search, filterCategory, filterGrade, sortBy]
+  )
+  const visibleSoldCards = useMemo(
+    () => applyFilters(soldCards, search, filterCategory, filterGrade),
+    [soldCards, search, filterCategory, filterGrade]
   )
 
   function openAddForm(mode: 'mine' | 'wishlist') {
@@ -197,6 +222,20 @@ function HomePageInner() {
     loadData()
   }
 
+  async function handleUnsell(card: Card) {
+    const ok = window.confirm(`ยกเลิกการขาย "${card.name}" ใช่ไหม? การ์ดจะย้ายกลับไปที่ "การ์ดของฉัน"`)
+    if (!ok) return
+    const { error: updErr } = await supabase
+      .from('cards')
+      .update({ is_sold: false, sold_price_thb: null, sold_at: null })
+      .eq('id', card.id)
+    if (updErr) {
+      alert('ยกเลิกไม่สำเร็จ: ' + updErr.message)
+      return
+    }
+    loadData()
+  }
+
   return (
     <main className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6">
       <header className="mb-6 flex items-center justify-between">
@@ -210,7 +249,15 @@ function HomePageInner() {
             tab === 'mine' ? 'bg-white text-brand-700 shadow' : 'text-slate-500'
           }`}
         >
-          การ์ดของฉัน ({cards.filter((c) => !c.is_wishlist).length})
+          การ์ดของฉัน ({cards.filter((c) => !c.is_wishlist && !c.is_sold).length})
+        </button>
+        <button
+          onClick={() => setTab('sold')}
+          className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+            tab === 'sold' ? 'bg-white text-brand-700 shadow' : 'text-slate-500'
+          }`}
+        >
+          ขายแล้ว ({cards.filter((c) => !c.is_wishlist && c.is_sold).length})
         </button>
         <button
           onClick={() => setTab('wishlist')}
@@ -293,6 +340,49 @@ function HomePageInner() {
                   mode="mine"
                   onEdit={() => openEditForm(c)}
                   onDelete={() => handleDelete(c)}
+                  onSell={() => setSellingCard(c)}
+                  linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
+                  readOnly={readOnly}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      ) : tab === 'sold' ? (
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatTile label="ต้นทุนรวม (ขายแล้ว)" value={formatTHB(soldStats.totalCost)} />
+            <StatTile label="ขายได้รวม" value={formatTHB(soldStats.totalSold)} />
+            <StatTile
+              label="กำไรที่รับรู้แล้ว"
+              value={formatSigned(soldStats.profit, formatTHB)}
+              tone={soldStats.profit >= 0 ? 'positive' : 'negative'}
+            />
+            <StatTile
+              label="Margin"
+              value={formatPct(soldStats.marginPct)}
+              tone={soldStats.marginPct >= 0 ? 'positive' : 'negative'}
+            />
+          </div>
+
+          <div className="mb-4 mt-6 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-slate-800">ขายแล้ว</h2>
+          </div>
+
+          {soldCards.length === 0 ? (
+            <EmptyState text="ยังไม่มีการ์ดที่ขายแล้ว" />
+          ) : visibleSoldCards.length === 0 ? (
+            <EmptyState text="ไม่พบการ์ดที่ตรงกับตัวกรอง" />
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {visibleSoldCards.map((c) => (
+                <CardTile
+                  key={c.id}
+                  card={c}
+                  mode="sold"
+                  onEdit={() => openEditForm(c)}
+                  onDelete={() => handleDelete(c)}
+                  onUnsell={() => handleUnsell(c)}
                   linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
                   readOnly={readOnly}
                 />
@@ -359,6 +449,17 @@ function HomePageInner() {
           }}
         />
       )}
+
+      {!readOnly && sellingCard && (
+        <SellCardModal
+          card={sellingCard}
+          onClose={() => setSellingCard(null)}
+          onSold={() => {
+            setSellingCard(null)
+            loadData()
+          }}
+        />
+      )}
     </main>
   )
 }
@@ -367,6 +468,25 @@ function EmptyState({ text }: { text: string }) {
   return (
     <div className="rounded-xl border border-dashed border-slate-300 py-16 text-center text-slate-400">
       {text}
+    </div>
+  )
+}
+
+function StatTile({
+  label,
+  value,
+  tone = 'neutral',
+}: {
+  label: string
+  value: string
+  tone?: 'positive' | 'negative' | 'neutral'
+}) {
+  const toneClass =
+    tone === 'positive' ? 'text-emerald-600' : tone === 'negative' ? 'text-red-500' : 'text-slate-900'
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-3">
+      <p className="text-[11px] font-medium text-slate-500">{label}</p>
+      <p className={`mt-1 text-base font-bold sm:text-lg ${toneClass}`}>{value}</p>
     </div>
   )
 }

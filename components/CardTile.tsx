@@ -6,15 +6,17 @@ import { calcProfit, formatJPY, formatPct, formatRelative, formatSigned, formatT
 
 interface Props {
   card: CardWithLatestPrice
-  mode: 'mine' | 'wishlist'
+  mode: 'mine' | 'wishlist' | 'sold'
   onEdit: () => void
   onDelete: () => void
   onMove?: () => void
+  onSell?: () => void
+  onUnsell?: () => void
   linkHref?: string
   readOnly?: boolean
 }
 
-export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHref, readOnly }: Props) {
+export default function CardTile({ card, mode, onEdit, onDelete, onMove, onSell, onUnsell, linkHref, readOnly }: Props) {
   const image = card.custom_image_url || card.image_url
   const qty = card.quantity ?? 1
   const unitMarketThb = card.latestPrice?.market_price_thb ?? null
@@ -23,6 +25,7 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHre
   const marketJpy = unitMarketJpy !== null ? unitMarketJpy * qty : null
   const totalCostThb = card.cost_thb ?? null
   const profitInfo = mode === 'mine' ? calcProfit(totalCostThb, marketThb) : null
+  const soldProfitInfo = mode === 'sold' ? calcProfit(totalCostThb, card.sold_price_thb) : null
 
   const body = (
     <>
@@ -47,7 +50,7 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHre
         <p className="text-[10px] font-medium uppercase tracking-wide text-brand-500">{card.category}</p>
         <p className="line-clamp-2 text-sm font-semibold leading-snug text-slate-800">{card.name}</p>
 
-        {mode === 'mine' && (
+        {(mode === 'mine' || mode === 'sold') && (
           <>
             <p className="text-xs text-slate-500">ต้นทุน {formatTHB(totalCostThb)}</p>
             {qty > 1 && card.costs_thb && card.costs_thb.length > 1 && (
@@ -58,7 +61,12 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHre
           </>
         )}
 
-        {card.latestPrice ? (
+        {mode === 'sold' ? (
+          <>
+            <p className="text-sm font-bold text-slate-900">ขายได้ {formatTHB(card.sold_price_thb)}</p>
+            {card.sold_at && <p className="text-[11px] text-slate-400">ขายเมื่อ {formatRelative(card.sold_at)}</p>}
+          </>
+        ) : card.latestPrice ? (
           <>
             <p className="text-sm font-bold text-slate-900">
               {formatTHB(marketThb)} <span className="text-xs font-normal text-slate-400">({formatJPY(marketJpy)})</span>
@@ -77,6 +85,12 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHre
         {mode === 'mine' && profitInfo && (
           <p className={`text-xs font-semibold ${profitInfo.profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
             {formatSigned(profitInfo.profit, formatTHB)} ({formatPct(profitInfo.marginPct)})
+          </p>
+        )}
+
+        {mode === 'sold' && soldProfitInfo && (
+          <p className={`text-xs font-semibold ${soldProfitInfo.profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+            กำไร {formatSigned(soldProfitInfo.profit, formatTHB)} ({formatPct(soldProfitInfo.marginPct)})
           </p>
         )}
       </div>
@@ -107,6 +121,22 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, linkHre
               className="flex-1 rounded-md bg-brand-100 px-2 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-200"
             >
               ย้ายเข้าคอลเลกชัน
+            </button>
+          )}
+          {mode === 'mine' && onSell && (
+            <button
+              onClick={onSell}
+              className="flex-1 rounded-md bg-emerald-50 px-2 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+            >
+              ขายแล้ว
+            </button>
+          )}
+          {mode === 'sold' && onUnsell && (
+            <button
+              onClick={onUnsell}
+              className="flex-1 rounded-md bg-slate-100 px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
+            >
+              ยกเลิกการขาย
             </button>
           )}
           <button
