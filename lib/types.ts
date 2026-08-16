@@ -13,6 +13,8 @@ export const GRADE_OPTIONS = [
 
 export const CATEGORY_OPTIONS = ['Pokémon', 'One Piece', 'Sports', 'กล่องซีล', 'อื่นๆ'] as const
 
+export const SEALED_BOX_CATEGORY = 'กล่องซีล'
+
 export const RAW_CONDITION_OPTIONS = ['A', 'B', 'C', 'D'] as const
 
 export interface Card {

@@ -1,7 +1,7 @@
 'use client'
 
 import { FormEvent, useState } from 'react'
-import { CATEGORY_OPTIONS, GRADE_OPTIONS, RAW_CONDITION_OPTIONS } from '@/lib/types'
+import { CATEGORY_OPTIONS, GRADE_OPTIONS, RAW_CONDITION_OPTIONS, SEALED_BOX_CATEGORY } from '@/lib/types'
 import Modal from './Modal'
 
 interface Props {
@@ -23,6 +23,7 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
   const [category, setCategory] = useState<string>(CATEGORY_OPTIONS[0])
   const [grade, setGrade] = useState('PSA10')
   const [rawCondition, setRawCondition] = useState<string>(RAW_CONDITION_OPTIONS[0])
+  const isSealedBox = category === SEALED_BOX_CATEGORY
   const [rows, setRows] = useState<Row[]>([emptyRow(), emptyRow()])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -63,8 +64,8 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
         const payload = {
           name: row.name.trim(),
           category,
-          grade,
-          raw_condition: grade === 'Raw' ? rawCondition : null,
+          grade: isSealedBox ? 'Raw' : grade,
+          raw_condition: !isSealedBox && grade === 'Raw' ? rawCondition : null,
           cost_thb: cost,
           costs_thb: [cost],
           quantity: 1,
@@ -107,17 +108,19 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
           </select>
         </Field>
 
-        <Field label="เกรด (ใช้กับทุกใบในชุด)">
-          <select value={grade} onChange={(e) => setGrade(e.target.value)} className="input">
-            {GRADE_OPTIONS.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {!isSealedBox && (
+          <Field label="เกรด (ใช้กับทุกใบในชุด)">
+            <select value={grade} onChange={(e) => setGrade(e.target.value)} className="input">
+              {GRADE_OPTIONS.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
 
-        {grade === 'Raw' && (
+        {!isSealedBox && grade === 'Raw' && (
           <Field label="สภาพ (A/B/C/D)">
             <select value={rawCondition} onChange={(e) => setRawCondition(e.target.value)} className="input">
               {RAW_CONDITION_OPTIONS.map((c) => (

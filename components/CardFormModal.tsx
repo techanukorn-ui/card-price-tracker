@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Card, CATEGORY_OPTIONS, GRADE_OPTIONS, RAW_CONDITION_OPTIONS } from '@/lib/types'
+import { Card, CATEGORY_OPTIONS, GRADE_OPTIONS, RAW_CONDITION_OPTIONS, SEALED_BOX_CATEGORY } from '@/lib/types'
 import { formatTHB } from '@/lib/format'
 import Modal from './Modal'
 
@@ -25,6 +25,7 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
   const [category, setCategory] = useState(card?.category || 'Pokémon')
   const [grade, setGrade] = useState(card?.grade || 'PSA10')
   const [rawCondition, setRawCondition] = useState(card?.raw_condition || 'A')
+  const isSealedBox = category === SEALED_BOX_CATEGORY
   const [costsThb, setCostsThb] = useState<string[]>(initialCosts(card))
   const [snkrdunkUrl, setSnkrdunkUrl] = useState(card?.snkrdunk_url || '')
   const [file, setFile] = useState<File | null>(null)
@@ -77,8 +78,8 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
       const payload = {
         name: name.trim(),
         category,
-        grade,
-        raw_condition: grade === 'Raw' ? rawCondition : null,
+        grade: isSealedBox ? 'Raw' : grade,
+        raw_condition: !isSealedBox && grade === 'Raw' ? rawCondition : null,
         cost_thb: mode === 'mine' ? parsedCosts.reduce((s, c) => s + c, 0) : null,
         costs_thb: mode === 'mine' ? parsedCosts : null,
         quantity: mode === 'mine' ? parsedCosts.length : 1,
@@ -135,17 +136,19 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
           </select>
         </Field>
 
-        <Field label="เกรด">
-          <select value={grade} onChange={(e) => setGrade(e.target.value)} className="input">
-            {GRADE_OPTIONS.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {!isSealedBox && (
+          <Field label="เกรด">
+            <select value={grade} onChange={(e) => setGrade(e.target.value)} className="input">
+              {GRADE_OPTIONS.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
 
-        {grade === 'Raw' && (
+        {!isSealedBox && grade === 'Raw' && (
           <Field label="สภาพ (A/B/C/D)">
             <select value={rawCondition} onChange={(e) => setRawCondition(e.target.value)} className="input">
               {RAW_CONDITION_OPTIONS.map((c) => (

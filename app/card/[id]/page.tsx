@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { Card, PriceHistory } from '@/lib/types'
+import { Card, PriceHistory, SEALED_BOX_CATEGORY } from '@/lib/types'
 import { calcProfit, formatDateTime, formatPct, formatRelative, formatSigned, formatTHB, formatJPY } from '@/lib/format'
 import CardPriceChart from '@/components/CardPriceChart'
 import CardFormModal from '@/components/CardFormModal'
@@ -102,9 +102,11 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
         </div>
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="inline-block rounded-full bg-slate-900 px-2 py-0.5 text-[11px] font-semibold text-white">
-              {card.grade === 'Raw' && card.raw_condition ? `Raw (${card.raw_condition})` : card.grade}
-            </span>
+            {card.category !== SEALED_BOX_CATEGORY && (
+              <span className="inline-block rounded-full bg-slate-900 px-2 py-0.5 text-[11px] font-semibold text-white">
+                {card.grade === 'Raw' && card.raw_condition ? `Raw (${card.raw_condition})` : card.grade}
+              </span>
+            )}
             <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
               {card.category}
             </span>

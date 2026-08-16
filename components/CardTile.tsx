@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { CardWithLatestPrice } from '@/lib/types'
+import { CardWithLatestPrice, SEALED_BOX_CATEGORY } from '@/lib/types'
 import { calcProfit, formatJPY, formatPct, formatRelative, formatSigned, formatTHB } from '@/lib/format'
 
 interface Props {
@@ -36,9 +36,11 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, onSell,
         ) : (
           <div className="flex h-full w-full items-center justify-center text-3xl text-slate-300">🃏</div>
         )}
-        <span className="absolute left-1.5 top-1.5 rounded-full bg-slate-900/80 px-2 py-0.5 text-[11px] font-semibold text-white">
-          {card.grade === 'Raw' && card.raw_condition ? `Raw (${card.raw_condition})` : card.grade}
-        </span>
+        {card.category !== SEALED_BOX_CATEGORY && (
+          <span className="absolute left-1.5 top-1.5 rounded-full bg-slate-900/80 px-2 py-0.5 text-[11px] font-semibold text-white">
+            {card.grade === 'Raw' && card.raw_condition ? `Raw (${card.raw_condition})` : card.grade}
+          </span>
+        )}
         {qty > 1 && (
           <span className="absolute right-1.5 top-1.5 rounded-full bg-brand-600/90 px-2 py-0.5 text-[11px] font-semibold text-white">
             ×{qty}
