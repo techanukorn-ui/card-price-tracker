@@ -144,7 +144,7 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
                   inputMode="decimal"
                   value={r.cost}
                   onChange={(e) => updateRow(i, 'cost', e.target.value)}
-                  className="input w-24"
+                  className="input !w-24"
                   placeholder="ราคา"
                 />
                 {rows.length > 2 && (
