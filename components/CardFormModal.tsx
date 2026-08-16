@@ -2,7 +2,14 @@
 
 import { FormEvent, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Card, CATEGORY_OPTIONS, GRADE_OPTIONS, RAW_CONDITION_OPTIONS, SEALED_BOX_CATEGORY } from '@/lib/types'
+import {
+  Card,
+  CATEGORY_OPTIONS,
+  GRADE_OPTIONS,
+  ITEM_TYPE_OPTIONS,
+  RAW_CONDITION_OPTIONS,
+  SEALED_BOX_ITEM_TYPE,
+} from '@/lib/types'
 import { formatTHB } from '@/lib/format'
 import Modal from './Modal'
 
@@ -23,9 +30,10 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
   const isEdit = !!card
   const [name, setName] = useState(card?.name || '')
   const [category, setCategory] = useState(card?.category || 'Pokémon')
+  const [itemType, setItemType] = useState(card?.item_type || 'การ์ด')
   const [grade, setGrade] = useState(card?.grade || 'PSA10')
   const [rawCondition, setRawCondition] = useState(card?.raw_condition || 'A')
-  const isSealedBox = category === SEALED_BOX_CATEGORY
+  const isSealedBox = itemType === SEALED_BOX_ITEM_TYPE
   const [costsThb, setCostsThb] = useState<string[]>(initialCosts(card))
   const [snkrdunkUrl, setSnkrdunkUrl] = useState(card?.snkrdunk_url || '')
   const [file, setFile] = useState<File | null>(null)
@@ -78,6 +86,7 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
       const payload = {
         name: name.trim(),
         category,
+        item_type: itemType,
         grade: isSealedBox ? 'Raw' : grade,
         raw_condition: !isSealedBox && grade === 'Raw' ? rawCondition : null,
         cost_thb: mode === 'mine' ? parsedCosts.reduce((s, c) => s + c, 0) : null,
@@ -131,6 +140,16 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
             {CATEGORY_OPTIONS.map((c) => (
               <option key={c} value={c}>
                 {c}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="ประเภท">
+          <select value={itemType} onChange={(e) => setItemType(e.target.value)} className="input">
+            {ITEM_TYPE_OPTIONS.map((t) => (
+              <option key={t} value={t}>
+                {t}
               </option>
             ))}
           </select>

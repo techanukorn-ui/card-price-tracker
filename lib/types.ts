@@ -11,9 +11,11 @@ export const GRADE_OPTIONS = [
   'Other',
 ] as const
 
-export const CATEGORY_OPTIONS = ['Pokémon', 'One Piece', 'Sports', 'กล่องซีล', 'อื่นๆ'] as const
+export const CATEGORY_OPTIONS = ['Pokémon', 'One Piece', 'Sports', 'อื่นๆ'] as const
 
-export const SEALED_BOX_CATEGORY = 'กล่องซีล'
+export const ITEM_TYPE_OPTIONS = ['การ์ด', 'กล่องซีล'] as const
+
+export const SEALED_BOX_ITEM_TYPE = 'กล่องซีล'
 
 export const RAW_CONDITION_OPTIONS = ['A', 'B', 'C', 'D'] as const
 
@@ -23,6 +25,7 @@ export interface Card {
   grade: string
   raw_condition: string | null
   category: string
+  item_type: string
   quantity: number
   cost_thb: number | null
   costs_thb: number[] | null

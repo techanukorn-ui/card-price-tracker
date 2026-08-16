@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { CardWithLatestPrice, SEALED_BOX_CATEGORY } from '@/lib/types'
+import { CardWithLatestPrice, SEALED_BOX_ITEM_TYPE } from '@/lib/types'
 import { calcProfit, formatJPY, formatPct, formatRelative, formatSigned, formatTHB } from '@/lib/format'
 
 interface Props {
@@ -36,7 +36,7 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, onSell,
         ) : (
           <div className="flex h-full w-full items-center justify-center text-3xl text-slate-300">🃏</div>
         )}
-        {card.category !== SEALED_BOX_CATEGORY && (
+        {card.item_type !== SEALED_BOX_ITEM_TYPE && (
           <span className="absolute left-1.5 top-1.5 rounded-full bg-slate-900/80 px-2 py-0.5 text-[11px] font-semibold text-white">
             {card.grade === 'Raw' && card.raw_condition ? `Raw (${card.raw_condition})` : card.grade}
           </span>
@@ -49,7 +49,10 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, onSell,
       </div>
 
       <div className="mt-2 space-y-1">
-        <p className="text-[10px] font-medium uppercase tracking-wide text-brand-500">{card.category}</p>
+        <p className="text-[10px] font-medium uppercase tracking-wide text-brand-500">
+          {card.category}
+          {card.item_type === SEALED_BOX_ITEM_TYPE ? ` · ${SEALED_BOX_ITEM_TYPE}` : ''}
+        </p>
         <p className="line-clamp-2 text-sm font-semibold leading-snug text-slate-800">{card.name}</p>
 
         {(mode === 'mine' || mode === 'sold') && (

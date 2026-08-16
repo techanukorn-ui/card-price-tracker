@@ -51,6 +51,11 @@ alter table public.cards add column if not exists sequential_set_id uuid;
 -- of leaving a permanently separate ×1 entry.
 alter table public.cards add column if not exists sold_from_card_id uuid references public.cards(id) on delete set null;
 
+-- item_type: independent from category (which is the franchise/product line,
+-- e.g. Pokémon) — distinguishes a single card from a sealed box, since a
+-- sealed box can belong to any category (e.g. a Pokémon sealed box).
+alter table public.cards add column if not exists item_type text not null default 'การ์ด';
+
 -- ============ price_history ============
 -- one row per price snapshot. never updated/overwritten, only inserted.
 create table if not exists public.price_history (

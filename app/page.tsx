@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { CATEGORY_OPTIONS, Card, CardWithLatestPrice, PriceHistory } from '@/lib/types'
+import { CATEGORY_OPTIONS, Card, CardWithLatestPrice, ITEM_TYPE_OPTIONS, PriceHistory } from '@/lib/types'
 import { calcProfit, formatPct, formatSigned, formatTHB } from '@/lib/format'
 import CardTile from '@/components/CardTile'
 import CardFormModal from '@/components/CardFormModal'
@@ -67,11 +67,13 @@ function applyFilters(
   list: CardWithLatestPrice[],
   search: string,
   category: string,
+  itemType: string,
   grade: string
 ): CardWithLatestPrice[] {
   return list.filter((c) => {
     if (search.trim() && !c.name.toLowerCase().includes(search.trim().toLowerCase())) return false
     if (category !== 'all' && c.category !== category) return false
+    if (itemType !== 'all' && c.item_type !== itemType) return false
     if (grade !== 'all' && c.grade !== grade) return false
     return true
   })
@@ -189,6 +191,7 @@ function HomePageInner() {
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortOption>('profit_amount_desc')
   const [filterCategory, setFilterCategory] = useState('all')
+  const [filterItemType, setFilterItemType] = useState('all')
   const [filterGrade, setFilterGrade] = useState('all')
 
   const loadData = useCallback(async () => {
@@ -248,20 +251,20 @@ function HomePageInner() {
   }, [cards])
 
   const visibleMyCards = useMemo(
-    () => applySort(applyFilters(myCards, search, filterCategory, filterGrade), sortBy),
-    [myCards, search, filterCategory, filterGrade, sortBy]
+    () => applySort(applyFilters(myCards, search, filterCategory, filterItemType, filterGrade), sortBy),
+    [myCards, search, filterCategory, filterItemType, filterGrade, sortBy]
   )
   // Sequential Set cards stay clustered as one block, but the block is
   // positioned wherever its first (best-sorted) member lands, so sort order
   // is still respected instead of sets always floating to the top.
   const myCardRenderItems = useMemo(() => groupBySequentialSet(visibleMyCards), [visibleMyCards])
   const visibleWishlistCards = useMemo(
-    () => applySort(applyFilters(wishlistCards, search, filterCategory, filterGrade), sortBy),
-    [wishlistCards, search, filterCategory, filterGrade, sortBy]
+    () => applySort(applyFilters(wishlistCards, search, filterCategory, filterItemType, filterGrade), sortBy),
+    [wishlistCards, search, filterCategory, filterItemType, filterGrade, sortBy]
   )
   const visibleSoldCards = useMemo(
-    () => applySoldSort(applyFilters(soldCards, search, filterCategory, filterGrade), sortBy),
-    [soldCards, search, filterCategory, filterGrade, sortBy]
+    () => applySoldSort(applyFilters(soldCards, search, filterCategory, filterItemType, filterGrade), sortBy),
+    [soldCards, search, filterCategory, filterItemType, filterGrade, sortBy]
   )
   const soldCardRenderItems = useMemo(() => groupBySequentialSet(visibleSoldCards), [visibleSoldCards])
 
@@ -406,6 +409,14 @@ function HomePageInner() {
             {CATEGORY_OPTIONS.map((c) => (
               <option key={c} value={c}>
                 {c}
+              </option>
+            ))}
+          </select>
+          <select value={filterItemType} onChange={(e) => setFilterItemType(e.target.value)} className="input !w-auto">
+            <option value="all">ทุกประเภท</option>
+            {ITEM_TYPE_OPTIONS.map((t) => (
+              <option key={t} value={t}>
+                {t}
               </option>
             ))}
           </select>
