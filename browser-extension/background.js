@@ -9,7 +9,9 @@
 // human clicking through the site would.
 
 const UPDATE_PRICE_URL = 'https://card-price-tracker-ten.vercel.app/api/update-price'
-const EXCHANGE_RATE_URL = 'https://api.frankfurter.dev/v1/latest?base=JPY&symbols=THB'
+const SUPABASE_URL = 'https://zrlfdmxplfztomaodozd.supabase.co'
+const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpybGZkbXhwbGZ6dG9tYW9kb3pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MDk1MDQsImV4cCI6MjEwMjM4NTUwNH0.wAJ7N2R3JhKxdcQ_hnoInae-vVQXRGJ6ALNk0jK2VbI'
 const SEALED_BOX_ITEM_TYPE = 'กล่องซีล'
 const PAGE_SETTLE_DELAY_MS = 500
 const BETWEEN_CARDS_DELAY_MS = 1800
@@ -162,11 +164,17 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedB
   })()
 }
 
+// Reads the user's fixed JPY→THB rate from the app_settings table (set via
+// the "เรทค่าเงิน" button on the web app) instead of a live FX lookup — so
+// THB numbers only move when a card's actual JPY price moves, not on every
+// FX wobble. See lib/appSettings.ts on the web app side for the rationale.
 async function fetchExchangeRate() {
-  const res = await fetch(EXCHANGE_RATE_URL)
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/app_settings?select=jpy_thb_rate&id=eq.1`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+  })
   const json = await res.json()
-  const rate = json && json.rates && json.rates.THB
-  if (typeof rate !== 'number') throw new Error('อ่านอัตราแลกเปลี่ยนไม่ได้')
+  const rate = json && json[0] && json[0].jpy_thb_rate
+  if (typeof rate !== 'number') throw new Error('ยังไม่ได้ตั้งเรทค่าเงิน — ตั้งค่าที่ปุ่ม "เรทค่าเงิน" บนเว็บก่อน')
   return rate
 }
 

@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Card Price Tracker - SNKRDUNK Auto Update",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "อ่านราคาขายจริงจาก SNKRDUNK ด้วยเบราว์เซอร์จริงของคุณ แล้วส่งกลับไปอัปเดตให้ card-price-tracker อัตโนมัติ",
   "permissions": ["scripting", "tabs"],
   "host_permissions": [
     "https://snkrdunk.com/*",
     "https://card-price-tracker-ten.vercel.app/*",
     "http://localhost:3000/*",
-    "https://api.frankfurter.dev/*"
+    "https://zrlfdmxplfztomaodozd.supabase.co/*"
   ],
   "background": {
     "service_worker": "background.js"

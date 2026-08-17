@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient'
 import { PriceUpdateCardInput } from './priceUpdateBridge'
+import { getFixedExchangeRate } from './appSettings'
 
 // Drives the iOS-friendly "batch update via one tab that redirects itself"
 // flow (see browser-extension/ios-userscript.user.js). Unlike the Chrome
@@ -24,14 +25,12 @@ export interface MobileBatchJob {
   startedAt: string // ISO timestamp, used as the "since" cursor when polling
 }
 
-const EXCHANGE_RATE_URL = 'https://api.frankfurter.dev/v1/latest?base=JPY&symbols=THB'
-
+// Reads the user's fixed JPY→THB rate (set via the "เรทค่าเงิน" button) —
+// not a live lookup. See lib/appSettings.ts for the rationale.
 export async function fetchExchangeRate(): Promise<number> {
-  const res = await fetch(EXCHANGE_RATE_URL)
-  const json = await res.json()
-  const rate = json && json.rates && json.rates.THB
-  if (typeof rate !== 'number') throw new Error('ดึงอัตราแลกเปลี่ยน JPY→THB ไม่สำเร็จ')
-  return rate
+  const setting = await getFixedExchangeRate()
+  if (!setting) throw new Error('ยังไม่ได้ตั้งเรทค่าเงิน — กดปุ่ม "เรทค่าเงิน" ที่หัวเว็บเพื่อตั้งค่าก่อน')
+  return setting.rate
 }
 
 // Plain base64 (not further URI-encoded) — URLSearchParams.set/toString()

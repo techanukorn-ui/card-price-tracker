@@ -4,7 +4,8 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { CATEGORY_OPTIONS, Card, CardWithLatestPrice, ITEM_TYPE_OPTIONS, PriceHistory } from '@/lib/types'
-import { calcProfit, formatPct, formatSigned, formatTHB } from '@/lib/format'
+import { calcProfit, formatPct, formatRelative, formatSigned, formatTHB } from '@/lib/format'
+import { ExchangeRateSetting, getFixedExchangeRate } from '@/lib/appSettings'
 import {
   EXTENSION_INSTALL_HINT,
   cardToUpdateInput,
@@ -15,6 +16,7 @@ import { buildMobileBatchStartUrl, fetchExchangeRate, loadMobileJob, MobileBatch
 import CardTile from '@/components/CardTile'
 import PriceUpdateBar from '@/components/PriceUpdateBar'
 import MobilePriceUpdateBar from '@/components/MobilePriceUpdateBar'
+import ExchangeRateSettingsModal from '@/components/ExchangeRateSettingsModal'
 import CardFormModal from '@/components/CardFormModal'
 import MoveToCollectionModal from '@/components/MoveToCollectionModal'
 import SellCardModal from '@/components/SellCardModal'
@@ -207,6 +209,15 @@ function HomePageInner() {
   useEffect(() => {
     setMobileJob(loadMobileJob())
   }, [])
+
+  const [rateSettingsOpen, setRateSettingsOpen] = useState(false)
+  const [exchangeRateInfo, setExchangeRateInfo] = useState<ExchangeRateSetting | null>(null)
+  const loadExchangeRateInfo = useCallback(() => {
+    getFixedExchangeRate().then(setExchangeRateInfo)
+  }, [])
+  useEffect(() => {
+    loadExchangeRateInfo()
+  }, [loadExchangeRateInfo])
 
   const loadData = useCallback(async () => {
     setError(null)
@@ -433,8 +444,18 @@ function HomePageInner() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6">
-      <header className="mb-6 flex items-center justify-between">
+      <header className="mb-6 flex items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">🃏 Card Price Tracker</h1>
+        {!readOnly && (
+          <button
+            onClick={() => setRateSettingsOpen(true)}
+            className="shrink-0 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
+          >
+            {exchangeRateInfo
+              ? `เรท ${exchangeRateInfo.rate} · ${formatRelative(exchangeRateInfo.updatedAt)}`
+              : 'ตั้งเรทค่าเงิน'}
+          </button>
+        )}
       </header>
 
       <div className="mb-6 flex gap-2 rounded-xl bg-slate-100 p-1">
@@ -738,6 +759,10 @@ function HomePageInner() {
 
       <PriceUpdateBar onDone={loadData} />
       <MobilePriceUpdateBar job={mobileJob} onDone={handleMobileJobDone} />
+
+      {!readOnly && rateSettingsOpen && (
+        <ExchangeRateSettingsModal onClose={() => setRateSettingsOpen(false)} onSaved={loadExchangeRateInfo} />
+      )}
 
       {!readOnly && formOpen && (
         <CardFormModal
