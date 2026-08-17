@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { CATEGORY_OPTIONS, Card, CardWithLatestPrice, ITEM_TYPE_OPTIONS, PriceHistory } from '@/lib/types'
 import { calcProfit, formatPct, formatRelative, formatSigned, formatTHB } from '@/lib/format'
-import { ExchangeRateSetting, getFixedExchangeRate } from '@/lib/appSettings'
+import { ExchangeRateSetting, getFixedExchangeRate, getSiteBranding, SiteBranding } from '@/lib/appSettings'
 import {
   EXTENSION_INSTALL_HINT,
   cardToUpdateInput,
@@ -17,6 +17,7 @@ import CardTile from '@/components/CardTile'
 import PriceUpdateBar from '@/components/PriceUpdateBar'
 import MobilePriceUpdateBar from '@/components/MobilePriceUpdateBar'
 import ExchangeRateSettingsModal from '@/components/ExchangeRateSettingsModal'
+import BrandingSettingsModal from '@/components/BrandingSettingsModal'
 import CardFormModal from '@/components/CardFormModal'
 import MoveToCollectionModal from '@/components/MoveToCollectionModal'
 import SellCardModal from '@/components/SellCardModal'
@@ -218,6 +219,15 @@ function HomePageInner() {
   useEffect(() => {
     loadExchangeRateInfo()
   }, [loadExchangeRateInfo])
+
+  const [brandingSettingsOpen, setBrandingSettingsOpen] = useState(false)
+  const [branding, setBranding] = useState<SiteBranding | null>(null)
+  const loadBranding = useCallback(() => {
+    getSiteBranding().then(setBranding)
+  }, [])
+  useEffect(() => {
+    loadBranding()
+  }, [loadBranding])
 
   const loadData = useCallback(async () => {
     setError(null)
@@ -445,7 +455,20 @@ function HomePageInner() {
   return (
     <main className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6">
       <header className="mb-6 flex items-center justify-between gap-2">
-        <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">🃏 Card Price Tracker</h1>
+        <button
+          type="button"
+          onClick={() => !readOnly && setBrandingSettingsOpen(true)}
+          disabled={readOnly}
+          className="flex items-center gap-2 text-left disabled:cursor-default"
+        >
+          {branding?.iconUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={branding.iconUrl} alt="" className="h-7 w-7 rounded-md object-cover sm:h-8 sm:w-8" />
+          ) : (
+            <span className="text-xl sm:text-2xl">🃏</span>
+          )}
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{branding?.title || 'Card Price Tracker'}</h1>
+        </button>
         {!readOnly && (
           <button
             onClick={() => setRateSettingsOpen(true)}
@@ -762,6 +785,10 @@ function HomePageInner() {
 
       {!readOnly && rateSettingsOpen && (
         <ExchangeRateSettingsModal onClose={() => setRateSettingsOpen(false)} onSaved={loadExchangeRateInfo} />
+      )}
+
+      {!readOnly && brandingSettingsOpen && (
+        <BrandingSettingsModal onClose={() => setBrandingSettingsOpen(false)} onSaved={loadBranding} />
       )}
 
       {!readOnly && formOpen && (
