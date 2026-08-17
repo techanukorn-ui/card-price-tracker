@@ -24,12 +24,14 @@ window.addEventListener('cpt:update-request', (e) => {
   }
 
   try {
-    chrome.runtime.sendMessage({ type: 'CPT_START', jobId: detail.jobId, cards: detail.cards || [] }, () => {
-      if (chrome.runtime.lastError) {
-        console.error('[cpt] sendMessage to background failed:', chrome.runtime.lastError.message)
-        window.dispatchEvent(new CustomEvent('cpt:extension-stale'))
-      }
-    })
+    // No callback here on purpose: background.js's listener never calls
+    // sendResponse (it's fire-and-forget - real progress/results come back
+    // separately via chrome.tabs.sendMessage), so passing a callback would
+    // make Chrome set lastError to "message port closed before a response
+    // was received" on every single call, which is harmless noise, not a
+    // real failure. Only a synchronous throw here means the context is
+    // actually invalidated.
+    chrome.runtime.sendMessage({ type: 'CPT_START', jobId: detail.jobId, cards: detail.cards || [] })
   } catch (err) {
     console.error('[cpt] sendMessage threw:', err)
     window.dispatchEvent(new CustomEvent('cpt:extension-stale'))
