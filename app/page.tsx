@@ -463,7 +463,7 @@ function HomePageInner() {
         >
           {branding?.iconUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={branding.iconUrl} alt="" className="h-9 w-9 rounded-md object-cover sm:h-11 sm:w-11" />
+            <img src={branding.iconUrl} alt="" className="h-12 w-12 rounded-md object-cover sm:h-14 sm:w-14" />
           ) : (
             <span className="text-xl sm:text-2xl">🃏</span>
           )}
