@@ -49,7 +49,7 @@ function waitForTabLoad(tabId, timeoutMs = 20000) {
 // page load (Next.js hydration + a data fetch), so a fixed short delay is
 // not reliable — this polls for the table (and, after clicking a grade
 // filter, for rows actually matching that grade) instead of guessing a wait.
-function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel) {
+function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedBoxItemType) {
   function parseSoldAt(s) {
     s = s.trim()
     if (s === 'たった今') return new Date()
@@ -105,7 +105,7 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel) {
       return { ok: false, error: 'โหลดตารางประวัติการขายบนหน้า SNKRDUNK ไม่ทัน (อาจช้ากว่าปกติ)' }
     }
 
-    const isSealed = itemType === SEALED_BOX_ITEM_TYPE
+    const isSealed = itemType === sealedBoxItemType
     let targetVariant
 
     if (isSealed) {
@@ -223,7 +223,7 @@ async function runJob(jobId, cards, webappTabId) {
       const injectionResults = await chrome.scripting.executeScript({
         target: { tabId: workTab.id },
         func: scrapeCardOnPage,
-        args: [card.grade, card.rawCondition, card.itemType, '1個'],
+        args: [card.grade, card.rawCondition, card.itemType, '1個', SEALED_BOX_ITEM_TYPE],
       })
       const injection = injectionResults && injectionResults[0]
       const result = injection && injection.result
