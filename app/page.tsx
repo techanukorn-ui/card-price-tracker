@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { CATEGORY_OPTIONS, Card, CardWithLatestPrice, ITEM_TYPE_OPTIONS, PriceHistory } from '@/lib/types'
+import { CATEGORY_OPTIONS, Card, CardWithLatestPrice, ITEM_TYPE_OPTIONS, PriceHistory, SEALED_BOX_ITEM_TYPE } from '@/lib/types'
 import { calcProfit, formatPct, formatRelative, formatSigned, formatTHB } from '@/lib/format'
 import { ExchangeRateSetting, getFixedExchangeRate, getSiteBranding, SiteBranding } from '@/lib/appSettings'
 import {
@@ -86,7 +86,10 @@ function applyFilters(
     if (search.trim() && !c.name.toLowerCase().includes(search.trim().toLowerCase())) return false
     if (category !== 'all' && c.category !== category) return false
     if (itemType !== 'all' && c.item_type !== itemType) return false
-    if (grade !== 'all' && c.grade !== grade) return false
+    // Sealed boxes don't really have a grade — whatever value sits in that
+    // column for a box is incidental, not meaningful, so the grade filter
+    // shouldn't include/exclude boxes based on it.
+    if (grade !== 'all' && c.item_type !== SEALED_BOX_ITEM_TYPE && c.grade !== grade) return false
     return true
   })
 }
@@ -281,7 +284,7 @@ function HomePageInner() {
   }, [soldCards])
 
   const gradeOptions = useMemo(() => {
-    const set = new Set(cards.map((c) => c.grade).filter(Boolean))
+    const set = new Set(cards.filter((c) => c.item_type !== SEALED_BOX_ITEM_TYPE).map((c) => c.grade).filter(Boolean))
     return Array.from(set).sort()
   }, [cards])
 
@@ -538,14 +541,16 @@ function HomePageInner() {
               </option>
             ))}
           </select>
-          <select value={filterGrade} onChange={(e) => setFilterGrade(e.target.value)} className="input !w-auto">
-            <option value="all">ทุกเกรด</option>
-            {gradeOptions.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </select>
+          {filterItemType !== SEALED_BOX_ITEM_TYPE && (
+            <select value={filterGrade} onChange={(e) => setFilterGrade(e.target.value)} className="input !w-auto">
+              <option value="all">ทุกเกรด</option>
+              {gradeOptions.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          )}
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} className="input !w-auto">
             {(Object.keys(SORT_LABELS) as SortOption[]).map((s) => (
               <option key={s} value={s}>
