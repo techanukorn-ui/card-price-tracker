@@ -98,6 +98,7 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel) {
   }
 
   return (async () => {
+   try {
     // Wait for the sold-history table itself to exist before doing anything else.
     const tableReady = await pollUntil(() => readRows().length > 0, 8000)
     if (!tableReady) {
@@ -155,6 +156,9 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel) {
       sampleCount: used.length,
       usedFallback: withinWeek.length === 0,
     }
+   } catch (e) {
+     return { ok: false, error: 'สคริปต์อ่านหน้า SNKRDUNK พัง: ' + String((e && e.message) || e) }
+   }
   })()
 }
 
@@ -221,10 +225,14 @@ async function runJob(jobId, cards, webappTabId) {
         func: scrapeCardOnPage,
         args: [card.grade, card.rawCondition, card.itemType, '1個'],
       })
-      const result = injectionResults && injectionResults[0] && injectionResults[0].result
+      const injection = injectionResults && injectionResults[0]
+      const result = injection && injection.result
 
       if (!result || !result.ok) {
-        const error = (result && result.error) || 'อ่านราคาจากหน้า SNKRDUNK ไม่สำเร็จ'
+        const error =
+          (result && result.error) ||
+          (injection && injection.error && 'Chrome ฉีดสคริปต์ไม่สำเร็จ: ' + String(injection.error)) ||
+          'อ่านราคาจากหน้า SNKRDUNK ไม่สำเร็จ (ไม่มีรายละเอียดเพิ่มเติม)'
         failures.push({ cardId: card.id, error })
         post({ type: 'CPT_CARD_RESULT', cardId: card.id, ok: false, error })
       } else {
