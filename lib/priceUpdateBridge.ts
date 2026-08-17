@@ -72,6 +72,16 @@ export function requestPriceUpdate(cards: PriceUpdateCardInput[]): string {
   return jobId
 }
 
+export const EXTENSION_STALE_HINT =
+  'Extension เพิ่งอัปเดต/รีโหลดใหม่ ทำให้หน้านี้หลุดการเชื่อมต่อชั่วคราว\n\n' +
+  'แค่รีเฟรชหน้านี้ (กด F5 หรือ Ctrl+R) แล้วลองกดปุ่มดึงราคาอีกครั้งครับ'
+
+export function listenForExtensionStale(onStale: () => void): () => void {
+  const handler = () => onStale()
+  window.addEventListener('cpt:extension-stale', handler)
+  return () => window.removeEventListener('cpt:extension-stale', handler)
+}
+
 export const EXTENSION_INSTALL_HINT =
   'ยังไม่ได้ติดตั้ง Extension สำหรับดึงราคา\n\n' +
   'วิธีติดตั้ง (ทำครั้งเดียว):\n' +

@@ -1,7 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { PriceUpdateCardResult, PriceUpdateDone, PriceUpdateProgress } from '@/lib/priceUpdateBridge'
+import {
+  EXTENSION_STALE_HINT,
+  PriceUpdateCardResult,
+  PriceUpdateDone,
+  PriceUpdateProgress,
+  listenForExtensionStale,
+} from '@/lib/priceUpdateBridge'
 
 interface Props {
   onDone?: () => void
@@ -63,10 +69,15 @@ export default function PriceUpdateBar({ onDone }: Props) {
     window.addEventListener('cpt:progress', onProgress)
     window.addEventListener('cpt:card-result', onCardResult)
     window.addEventListener('cpt:done', onDoneEvt)
+    const unsubscribeStale = listenForExtensionStale(() => {
+      setJob(null)
+      alert(EXTENSION_STALE_HINT)
+    })
     return () => {
       window.removeEventListener('cpt:progress', onProgress)
       window.removeEventListener('cpt:card-result', onCardResult)
       window.removeEventListener('cpt:done', onDoneEvt)
+      unsubscribeStale()
       if (hideTimer.current) clearTimeout(hideTimer.current)
     }
   }, [onDone])
