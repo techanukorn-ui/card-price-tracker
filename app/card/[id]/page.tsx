@@ -12,9 +12,11 @@ import {
   isExtensionInstalled,
   requestPriceUpdate,
 } from '@/lib/priceUpdateBridge'
+import { buildMobileBatchStartUrl, fetchExchangeRate, loadMobileJob, MobileBatchJob, saveMobileJob } from '@/lib/mobilePriceUpdate'
 import CardPriceChart from '@/components/CardPriceChart'
 import CardFormModal from '@/components/CardFormModal'
 import PriceUpdateBar from '@/components/PriceUpdateBar'
+import MobilePriceUpdateBar from '@/components/MobilePriceUpdateBar'
 
 export default function CardDetailPage({ params }: { params: { id: string } }) {
   return (
@@ -33,6 +35,10 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [mobileJob, setMobileJob] = useState<MobileBatchJob | null>(null)
+  useEffect(() => {
+    setMobileJob(loadMobileJob())
+  }, [])
 
   const load = useCallback(async () => {
     const { data: cardData } = await supabase.from('cards').select('*').eq('id', params.id).maybeSingle()
@@ -80,6 +86,50 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
       return
     }
     requestPriceUpdate([input])
+  }
+
+  function handleUpdatePriceMobile() {
+    if (!card) return
+    const input = cardToUpdateInput(card)
+    if (!input) {
+      alert('การ์ดใบนี้ไม่มีลิงก์ SNKRDUNK')
+      return
+    }
+
+    const win = window.open('about:blank', '_blank')
+    if (!win) {
+      alert('เบราว์เซอร์บล็อก popup — กรุณาอนุญาต popup สำหรับเว็บนี้แล้วลองใหม่')
+      return
+    }
+
+    ;(async () => {
+      let rate: number
+      try {
+        rate = await fetchExchangeRate()
+      } catch {
+        win.close()
+        alert('ดึงอัตราแลกเปลี่ยนไม่สำเร็จ ลองใหม่อีกครั้ง')
+        return
+      }
+
+      const batch = buildMobileBatchStartUrl([input], rate)
+      if (!batch) {
+        win.close()
+        return
+      }
+
+      win.location.href = batch.url
+      setMobileJob(batch.job)
+      saveMobileJob(batch.job)
+    })()
+  }
+
+  function handleMobileJobDone() {
+    load()
+    setTimeout(() => {
+      setMobileJob(null)
+      saveMobileJob(null)
+    }, 6000)
   }
 
   if (loading) {
@@ -244,7 +294,16 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
               disabled={!card.snkrdunk_url}
               className="flex-1 rounded-lg bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              ดึงราคาใหม่
+              อัปเดตราคา (คอม)
+            </button>
+          )}
+          {!card.is_sold && (
+            <button
+              onClick={handleUpdatePriceMobile}
+              disabled={!card.snkrdunk_url}
+              className="flex-1 rounded-lg bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              อัปเดตราคา (มือถือ)
             </button>
           )}
           <button
@@ -263,6 +322,7 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
       )}
 
       <PriceUpdateBar onDone={load} />
+      <MobilePriceUpdateBar job={mobileJob} onDone={handleMobileJobDone} />
 
       {!readOnly && editOpen && (
         <CardFormModal

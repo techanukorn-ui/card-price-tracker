@@ -583,6 +583,7 @@ function HomePageInner() {
                           onDelete={() => handleDelete(c)}
                           onSell={() => setSellingCard(c)}
                           onUpdatePrice={() => handleUpdatePrices([c])}
+                          onUpdatePriceMobile={() => handleUpdatePricesMobile([c])}
                           linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
                           readOnly={readOnly}
                         />
@@ -598,6 +599,7 @@ function HomePageInner() {
                     onDelete={() => handleDelete(item.card)}
                     onSell={() => setSellingCard(item.card)}
                     onUpdatePrice={() => handleUpdatePrices([item.card])}
+                    onUpdatePriceMobile={() => handleUpdatePricesMobile([item.card])}
                     linkHref={readOnly ? `/card/${item.card.id}?readonly=1` : `/card/${item.card.id}`}
                     readOnly={readOnly}
                   />
@@ -724,6 +726,7 @@ function HomePageInner() {
                   onDelete={() => handleDelete(c)}
                   onMove={() => setMovingCard(c)}
                   onUpdatePrice={() => handleUpdatePrices([c])}
+                  onUpdatePriceMobile={() => handleUpdatePricesMobile([c])}
                   linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
                   readOnly={readOnly}
                 />
