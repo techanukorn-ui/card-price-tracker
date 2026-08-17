@@ -5,7 +5,14 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { CATEGORY_OPTIONS, Card, CardWithLatestPrice, ITEM_TYPE_OPTIONS, PriceHistory } from '@/lib/types'
 import { calcProfit, formatPct, formatSigned, formatTHB } from '@/lib/format'
+import {
+  EXTENSION_INSTALL_HINT,
+  cardToUpdateInput,
+  isExtensionInstalled,
+  requestPriceUpdate,
+} from '@/lib/priceUpdateBridge'
 import CardTile from '@/components/CardTile'
+import PriceUpdateBar from '@/components/PriceUpdateBar'
 import CardFormModal from '@/components/CardFormModal'
 import MoveToCollectionModal from '@/components/MoveToCollectionModal'
 import SellCardModal from '@/components/SellCardModal'
@@ -341,6 +348,19 @@ function HomePageInner() {
     loadData()
   }
 
+  function handleUpdatePrices(cardsToUpdate: Card[]) {
+    if (!isExtensionInstalled()) {
+      alert(EXTENSION_INSTALL_HINT)
+      return
+    }
+    const inputs = cardsToUpdate.map(cardToUpdateInput).filter((c): c is NonNullable<typeof c> => c !== null)
+    if (inputs.length === 0) {
+      alert('การ์ดที่เลือกไม่มีลิงก์ SNKRDUNK เลย')
+      return
+    }
+    requestPriceUpdate(inputs)
+  }
+
   async function handleUnsellSet(cardsToUnsell: Card[]) {
     const ok = window.confirm(
       `ยกเลิกการขายทั้งเซ็ต (${cardsToUnsell.length} ใบ) ใช่ไหม? การ์ดทุกใบจะย้ายกลับไปที่ "การ์ดของฉัน"`
@@ -447,7 +467,7 @@ function HomePageInner() {
           <div className="mb-4 mt-8 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-800">การ์ดของฉัน</h2>
             {!readOnly && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => openAddForm('mine')}
                   className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
@@ -459,6 +479,12 @@ function HomePageInner() {
                   className="rounded-lg bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-200"
                 >
                   + Sequential Set
+                </button>
+                <button
+                  onClick={() => handleUpdatePrices(myCards)}
+                  className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+                >
+                  ดึงราคาทั้งหมด
                 </button>
               </div>
             )}
@@ -496,6 +522,7 @@ function HomePageInner() {
                           onEdit={() => openEditForm(c)}
                           onDelete={() => handleDelete(c)}
                           onSell={() => setSellingCard(c)}
+                          onUpdatePrice={() => handleUpdatePrices([c])}
                           linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
                           readOnly={readOnly}
                         />
@@ -510,6 +537,7 @@ function HomePageInner() {
                     onEdit={() => openEditForm(item.card)}
                     onDelete={() => handleDelete(item.card)}
                     onSell={() => setSellingCard(item.card)}
+                    onUpdatePrice={() => handleUpdatePrices([item.card])}
                     linkHref={readOnly ? `/card/${item.card.id}?readonly=1` : `/card/${item.card.id}`}
                     readOnly={readOnly}
                   />
@@ -595,15 +623,23 @@ function HomePageInner() {
         </>
       ) : (
         <>
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-semibold text-slate-800">Wishlist</h2>
             {!readOnly && (
-              <button
-                onClick={() => openAddForm('wishlist')}
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-              >
-                + เพิ่ม Wishlist
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => openAddForm('wishlist')}
+                  className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+                >
+                  + เพิ่ม Wishlist
+                </button>
+                <button
+                  onClick={() => handleUpdatePrices(wishlistCards)}
+                  className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+                >
+                  ดึงราคาทั้งหมด
+                </button>
+              </div>
             )}
           </div>
 
@@ -621,6 +657,7 @@ function HomePageInner() {
                   onEdit={() => openEditForm(c)}
                   onDelete={() => handleDelete(c)}
                   onMove={() => setMovingCard(c)}
+                  onUpdatePrice={() => handleUpdatePrices([c])}
                   linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
                   readOnly={readOnly}
                 />
@@ -629,6 +666,8 @@ function HomePageInner() {
           )}
         </>
       )}
+
+      <PriceUpdateBar onDone={loadData} />
 
       {!readOnly && formOpen && (
         <CardFormModal

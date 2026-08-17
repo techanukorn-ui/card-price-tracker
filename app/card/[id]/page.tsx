@@ -6,8 +6,15 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { Card, PriceHistory, SEALED_BOX_ITEM_TYPE } from '@/lib/types'
 import { calcProfit, formatDateTime, formatPct, formatRelative, formatSigned, formatTHB, formatJPY } from '@/lib/format'
+import {
+  EXTENSION_INSTALL_HINT,
+  cardToUpdateInput,
+  isExtensionInstalled,
+  requestPriceUpdate,
+} from '@/lib/priceUpdateBridge'
 import CardPriceChart from '@/components/CardPriceChart'
 import CardFormModal from '@/components/CardFormModal'
+import PriceUpdateBar from '@/components/PriceUpdateBar'
 
 export default function CardDetailPage({ params }: { params: { id: string } }) {
   return (
@@ -59,6 +66,20 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
       return
     }
     router.push('/')
+  }
+
+  function handleUpdatePrice() {
+    if (!card) return
+    if (!isExtensionInstalled()) {
+      alert(EXTENSION_INSTALL_HINT)
+      return
+    }
+    const input = cardToUpdateInput(card)
+    if (!input) {
+      alert('การ์ดใบนี้ไม่มีลิงก์ SNKRDUNK')
+      return
+    }
+    requestPriceUpdate([input])
   }
 
   if (loading) {
@@ -216,7 +237,16 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
       )}
 
       {!readOnly && (
-        <div className="mt-6 flex gap-2">
+        <div className="mt-6 flex flex-wrap gap-2">
+          {!card.is_sold && (
+            <button
+              onClick={handleUpdatePrice}
+              disabled={!card.snkrdunk_url}
+              className="flex-1 rounded-lg bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              ดึงราคาใหม่
+            </button>
+          )}
           <button
             onClick={() => setEditOpen(true)}
             className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
@@ -231,6 +261,8 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
           </button>
         </div>
       )}
+
+      <PriceUpdateBar onDone={load} />
 
       {!readOnly && editOpen && (
         <CardFormModal

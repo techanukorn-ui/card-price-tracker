@@ -12,11 +12,23 @@ interface Props {
   onMove?: () => void
   onSell?: () => void
   onUnsell?: () => void
+  onUpdatePrice?: () => void
   linkHref?: string
   readOnly?: boolean
 }
 
-export default function CardTile({ card, mode, onEdit, onDelete, onMove, onSell, onUnsell, linkHref, readOnly }: Props) {
+export default function CardTile({
+  card,
+  mode,
+  onEdit,
+  onDelete,
+  onMove,
+  onSell,
+  onUnsell,
+  onUpdatePrice,
+  linkHref,
+  readOnly,
+}: Props) {
   const image = card.custom_image_url || card.image_url
   const qty = card.quantity ?? 1
   const unitMarketThb = card.latestPrice?.market_price_thb ?? null
@@ -110,6 +122,17 @@ export default function CardTile({ card, mode, onEdit, onDelete, onMove, onSell,
         </Link>
       ) : (
         body
+      )}
+
+      {!readOnly && mode !== 'sold' && onUpdatePrice && (
+        <button
+          onClick={onUpdatePrice}
+          disabled={!card.snkrdunk_url}
+          title={card.snkrdunk_url ? undefined : 'การ์ดใบนี้ไม่มีลิงก์ SNKRDUNK'}
+          className="mt-2 w-full rounded-md bg-brand-50 px-2 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          ดึงราคาใหม่
+        </button>
       )}
 
       {!readOnly && (
