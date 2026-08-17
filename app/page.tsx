@@ -538,7 +538,7 @@ function HomePageInner() {
                   onClick={() => handleUpdatePrices(myCards)}
                   className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
                 >
-                  ดึงราคาทั้งหมด
+                  อัปเดตราคา (คอม)
                 </button>
                 <button
                   onClick={() => handleUpdatePricesMobile(myCards)}
@@ -697,7 +697,7 @@ function HomePageInner() {
                   onClick={() => handleUpdatePrices(wishlistCards)}
                   className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
                 >
-                  ดึงราคาทั้งหมด
+                  อัปเดตราคา (คอม)
                 </button>
                 <button
                   onClick={() => handleUpdatePricesMobile(wishlistCards)}
