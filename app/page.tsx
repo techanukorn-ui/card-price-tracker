@@ -11,8 +11,10 @@ import {
   isExtensionInstalled,
   requestPriceUpdate,
 } from '@/lib/priceUpdateBridge'
+import { buildMobileBatchStartUrl, fetchExchangeRate, loadMobileJob, MobileBatchJob, saveMobileJob } from '@/lib/mobilePriceUpdate'
 import CardTile from '@/components/CardTile'
 import PriceUpdateBar from '@/components/PriceUpdateBar'
+import MobilePriceUpdateBar from '@/components/MobilePriceUpdateBar'
 import CardFormModal from '@/components/CardFormModal'
 import MoveToCollectionModal from '@/components/MoveToCollectionModal'
 import SellCardModal from '@/components/SellCardModal'
@@ -201,6 +203,11 @@ function HomePageInner() {
   const [filterItemType, setFilterItemType] = useState('all')
   const [filterGrade, setFilterGrade] = useState('all')
 
+  const [mobileJob, setMobileJob] = useState<MobileBatchJob | null>(null)
+  useEffect(() => {
+    setMobileJob(loadMobileJob())
+  }, [])
+
   const loadData = useCallback(async () => {
     setError(null)
     const [{ data: cardsData, error: cardsErr }, { data: priceData, error: priceErr }] = await Promise.all([
@@ -361,6 +368,53 @@ function HomePageInner() {
     requestPriceUpdate(inputs)
   }
 
+  function handleUpdatePricesMobile(cardsToUpdate: Card[]) {
+    const inputs = cardsToUpdate.map(cardToUpdateInput).filter((c): c is NonNullable<typeof c> => c !== null)
+    if (inputs.length === 0) {
+      alert('การ์ดที่เลือกไม่มีลิงก์ SNKRDUNK เลย')
+      return
+    }
+
+    // window.open must happen synchronously inside the click handler (not
+    // after an await) or iOS Safari's popup blocker silently kills it — we
+    // open a blank tab now and redirect it once the exchange rate is ready.
+    const win = window.open('about:blank', '_blank')
+    if (!win) {
+      alert('เบราว์เซอร์บล็อก popup — กรุณาอนุญาต popup สำหรับเว็บนี้แล้วลองใหม่')
+      return
+    }
+
+    ;(async () => {
+      let rate: number
+      try {
+        rate = await fetchExchangeRate()
+      } catch {
+        win.close()
+        alert('ดึงอัตราแลกเปลี่ยนไม่สำเร็จ ลองใหม่อีกครั้ง')
+        return
+      }
+
+      const batch = buildMobileBatchStartUrl(inputs, rate)
+      if (!batch) {
+        win.close()
+        alert('การ์ดที่เลือกไม่มีลิงก์ SNKRDUNK เลย')
+        return
+      }
+
+      win.location.href = batch.url
+      setMobileJob(batch.job)
+      saveMobileJob(batch.job)
+    })()
+  }
+
+  function handleMobileJobDone() {
+    loadData()
+    setTimeout(() => {
+      setMobileJob(null)
+      saveMobileJob(null)
+    }, 6000)
+  }
+
   async function handleUnsellSet(cardsToUnsell: Card[]) {
     const ok = window.confirm(
       `ยกเลิกการขายทั้งเซ็ต (${cardsToUnsell.length} ใบ) ใช่ไหม? การ์ดทุกใบจะย้ายกลับไปที่ "การ์ดของฉัน"`
@@ -485,6 +539,12 @@ function HomePageInner() {
                   className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
                 >
                   ดึงราคาทั้งหมด
+                </button>
+                <button
+                  onClick={() => handleUpdatePricesMobile(myCards)}
+                  className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+                >
+                  อัปเดตราคา (มือถือ)
                 </button>
               </div>
             )}
@@ -639,6 +699,12 @@ function HomePageInner() {
                 >
                   ดึงราคาทั้งหมด
                 </button>
+                <button
+                  onClick={() => handleUpdatePricesMobile(wishlistCards)}
+                  className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+                >
+                  อัปเดตราคา (มือถือ)
+                </button>
               </div>
             )}
           </div>
@@ -668,6 +734,7 @@ function HomePageInner() {
       )}
 
       <PriceUpdateBar onDone={loadData} />
+      <MobilePriceUpdateBar job={mobileJob} onDone={handleMobileJobDone} />
 
       {!readOnly && formOpen && (
         <CardFormModal
