@@ -11,7 +11,7 @@
 const UPDATE_PRICE_URL = 'https://card-price-tracker-ten.vercel.app/api/update-price'
 const EXCHANGE_RATE_URL = 'https://api.frankfurter.dev/v1/latest?base=JPY&symbols=THB'
 const SEALED_BOX_ITEM_TYPE = 'กล่องซีล'
-const PAGE_SETTLE_DELAY_MS = 1500
+const PAGE_SETTLE_DELAY_MS = 500
 const BETWEEN_CARDS_DELAY_MS = 1800
 
 function sleep(ms) {
@@ -44,6 +44,11 @@ function waitForTabLoad(tabId, timeoutMs = 20000) {
 // Injected into the SNKRDUNK page. Must be fully self-contained (no closures
 // over anything outside its own arguments) since chrome.scripting.executeScript
 // serializes it and runs it in the page's isolated world.
+//
+// SNKRDUNK's sold-history table is rendered client-side after the initial
+// page load (Next.js hydration + a data fetch), so a fixed short delay is
+// not reliable — this polls for the table (and, after clicking a grade
+// filter, for rows actually matching that grade) instead of guessing a wait.
 function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel) {
   function parseSoldAt(s) {
     s = s.trim()
@@ -72,62 +77,85 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel) {
     })
   }
 
-  function clickLabel(label) {
-    const btn = Array.from(document.querySelectorAll('button')).find((b) => b.textContent.trim() === label)
-    if (btn) {
-      btn.click()
-      return true
-    }
-    return false
+  function findButton(label) {
+    return Array.from(document.querySelectorAll('button')).find((b) => b.textContent.trim() === label) || null
   }
 
-  const isSealed = itemType === SEALED_BOX_ITEM_TYPE
-  let targetVariant
-
-  if (isSealed) {
-    targetVariant = sealedBoxLabel
-    clickLabel(targetVariant) // best-effort; box pages don't always need it
-  } else {
-    targetVariant = grade === 'Raw' ? rawCondition : grade
-    if (!targetVariant) {
-      return Promise.resolve({ ok: false, error: 'การ์ดใบนี้ไม่มีเกรด/สภาพ (raw_condition) ให้กรอง' })
-    }
-    const clicked = clickLabel(targetVariant)
-    if (!clicked) {
-      return Promise.resolve({ ok: false, error: `ไม่พบปุ่มกรองเกรด "${targetVariant}" บนหน้า SNKRDUNK` })
-    }
+  function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms))
   }
 
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const rows = readRows().filter((r) => r.variant === targetVariant)
-      const parsed = rows
-        .map((r) => ({
-          date: parseSoldAt(r.soldAtText),
-          price: Number(r.priceText.replace(/[^\d]/g, '')),
-        }))
-        .filter((r) => r.date && Number.isFinite(r.price) && r.price > 0)
+  // Polls `check` every 300ms (up to timeoutMs) until it returns a truthy
+  // value, or returns null if it never does.
+  async function pollUntil(check, timeoutMs) {
+    const start = Date.now()
+    while (Date.now() - start < timeoutMs) {
+      const result = check()
+      if (result) return result
+      await sleep(300)
+    }
+    return null
+  }
 
-      parsed.sort((a, b) => b.date.getTime() - a.date.getTime())
+  return (async () => {
+    // Wait for the sold-history table itself to exist before doing anything else.
+    const tableReady = await pollUntil(() => readRows().length > 0, 8000)
+    if (!tableReady) {
+      return { ok: false, error: 'โหลดตารางประวัติการขายบนหน้า SNKRDUNK ไม่ทัน (อาจช้ากว่าปกติ)' }
+    }
 
-      if (parsed.length === 0) {
-        resolve({ ok: false, error: `ไม่พบประวัติการขายที่ตรงกับ "${targetVariant}"` })
-        return
+    const isSealed = itemType === SEALED_BOX_ITEM_TYPE
+    let targetVariant
+
+    if (isSealed) {
+      targetVariant = sealedBoxLabel
+      const btn = findButton(targetVariant)
+      if (btn) btn.click() // best-effort; box pages don't always need it
+    } else {
+      targetVariant = grade === 'Raw' ? rawCondition : grade
+      if (!targetVariant) {
+        return { ok: false, error: 'การ์ดใบนี้ไม่มีเกรด/สภาพ (raw_condition) ให้กรอง' }
       }
+      const btn = await pollUntil(() => findButton(targetVariant), 5000)
+      if (!btn) {
+        return { ok: false, error: `ไม่พบปุ่มกรองเกรด "${targetVariant}" บนหน้า SNKRDUNK` }
+      }
+      btn.click()
+    }
 
-      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-      const withinWeek = parsed.filter((r) => r.date.getTime() >= sevenDaysAgo)
-      const used = withinWeek.length > 0 ? withinWeek.slice(0, 3) : [parsed[0]]
-      const avg = used.reduce((sum, r) => sum + r.price, 0) / used.length
+    // After clicking, wait for the table to actually reflect the filter
+    // (rows whose grade/condition column matches the target).
+    const filtered = await pollUntil(() => {
+      const rows = readRows().filter((r) => r.variant === targetVariant)
+      return rows.length > 0 ? rows : null
+    }, 5000)
 
-      resolve({
-        ok: true,
-        price_jpy: Math.round(avg * 100) / 100,
-        sampleCount: used.length,
-        usedFallback: withinWeek.length === 0,
-      })
-    }, 1200)
-  })
+    const rows = filtered || readRows().filter((r) => r.variant === targetVariant)
+    const parsed = rows
+      .map((r) => ({
+        date: parseSoldAt(r.soldAtText),
+        price: Number(r.priceText.replace(/[^\d]/g, '')),
+      }))
+      .filter((r) => r.date && Number.isFinite(r.price) && r.price > 0)
+
+    parsed.sort((a, b) => b.date.getTime() - a.date.getTime())
+
+    if (parsed.length === 0) {
+      return { ok: false, error: `ไม่พบประวัติการขายที่ตรงกับ "${targetVariant}"` }
+    }
+
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+    const withinWeek = parsed.filter((r) => r.date.getTime() >= sevenDaysAgo)
+    const used = withinWeek.length > 0 ? withinWeek.slice(0, 3) : [parsed[0]]
+    const avg = used.reduce((sum, r) => sum + r.price, 0) / used.length
+
+    return {
+      ok: true,
+      price_jpy: Math.round(avg * 100) / 100,
+      sampleCount: used.length,
+      usedFallback: withinWeek.length === 0,
+    }
+  })()
 }
 
 async function fetchExchangeRate() {
@@ -156,7 +184,18 @@ async function runJob(jobId, cards, webappTabId) {
     return
   }
 
-  const workTab = await chrome.tabs.create({ url: 'about:blank', active: false })
+  let workTab
+  try {
+    workTab = await chrome.tabs.create({ url: 'about:blank', active: false })
+  } catch (e) {
+    post({
+      type: 'CPT_DONE',
+      successCount: 0,
+      failCount: cards.length,
+      failures: cards.map((c) => ({ cardId: c.id, error: 'เปิดแท็บสำหรับดึงราคาไม่สำเร็จ: ' + String((e && e.message) || e) })),
+    })
+    return
+  }
 
   let successCount = 0
   const failures = []

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Card Price Tracker - SNKRDUNK Auto Update",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "อ่านราคาขายจริงจาก SNKRDUNK ด้วยเบราว์เซอร์จริงของคุณ แล้วส่งกลับไปอัปเดตให้ card-price-tracker อัตโนมัติ",
   "permissions": ["scripting", "tabs"],
   "host_permissions": [

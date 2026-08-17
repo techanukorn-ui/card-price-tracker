@@ -4,14 +4,21 @@
 
 document.documentElement.dataset.cptExtension = '1'
 window.dispatchEvent(new CustomEvent('cpt:extension-ready'))
+console.log('[cpt] extension bridge loaded')
 
 window.addEventListener('cpt:update-request', (e) => {
   const detail = e.detail || {}
-  chrome.runtime.sendMessage({ type: 'CPT_START', jobId: detail.jobId, cards: detail.cards || [] })
+  console.log('[cpt] update-request', detail)
+  chrome.runtime.sendMessage({ type: 'CPT_START', jobId: detail.jobId, cards: detail.cards || [] }, () => {
+    if (chrome.runtime.lastError) {
+      console.error('[cpt] sendMessage to background failed:', chrome.runtime.lastError.message)
+    }
+  })
 })
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (!msg || !msg.jobId) return
+  console.log('[cpt] message from background:', msg)
   if (msg.type === 'CPT_PROGRESS') {
     window.dispatchEvent(new CustomEvent('cpt:progress', { detail: msg }))
   } else if (msg.type === 'CPT_CARD_RESULT') {
