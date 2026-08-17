@@ -76,3 +76,8 @@ npm run dev
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (สำหรับ `/api/update-price`, optional — ถ้าไม่ตั้งจะ fallback ไปใช้ anon key)
+- `ADMIN_PASSWORD` (รหัสผ่านปลดล็อกโหมดแก้ไข)
+
+## ดึงราคาจาก SNKRDUNK แบบอัตโนมัติ
+
+ดู [`browser-extension/README.md`](./browser-extension/README.md) — เป็น Chrome extension ที่ให้ปุ่ม "ดึงราคาใหม่" / "ดึงราคาทั้งหมด" บนเว็บนี้ทำงานได้จริง โหลดแบบ unpacked ผ่าน `chrome://extensions` (ต้องทำใหม่ทุกเครื่องที่จะใช้ปุ่มนี้ ไม่ได้ติดมากับ `git clone`)
