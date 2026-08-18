@@ -43,11 +43,13 @@ export default function CardTile({
 
   const body = (
     <>
-      {card.item_type !== SEALED_BOX_ITEM_TYPE && (
-        <p className="mb-1.5 text-center text-sm font-bold tracking-wide text-gold-600 dark:text-gold-300">
-          {card.grade === 'Raw' && card.raw_condition ? `Raw (${card.raw_condition})` : card.grade}
-        </p>
-      )}
+      <p className="mb-1.5 text-center text-sm font-bold tracking-wide text-gold-600 dark:text-gold-300">
+        {card.item_type === SEALED_BOX_ITEM_TYPE
+          ? 'Box'
+          : card.grade === 'Raw' && card.raw_condition
+            ? `Raw (${card.raw_condition})`
+            : card.grade}
+      </p>
       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gradient-to-br from-slate-100 to-brand-50 dark:from-slate-800 dark:to-brand-500/10">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
