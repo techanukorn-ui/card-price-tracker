@@ -45,26 +45,28 @@ function LoginPageInner() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800"
       >
-        <h1 className="mb-1 text-lg font-bold text-slate-900">ใส่รหัสผ่านเพื่อแก้ไข</h1>
-        <p className="mb-4 text-sm text-slate-500">ดูข้อมูลได้โดยไม่ต้องล็อกอิน แต่ต้องใส่รหัสผ่านเพื่อเพิ่ม/แก้ไข/ลบ</p>
+        <h1 className="font-display mb-1 text-lg font-semibold text-slate-900 dark:text-slate-100">ใส่รหัสผ่านเพื่อแก้ไข</h1>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          ดูข้อมูลได้โดยไม่ต้องล็อกอิน แต่ต้องใส่รหัสผ่านเพื่อเพิ่ม/แก้ไข/ลบ
+        </p>
         <input
           type="password"
           autoFocus
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="รหัสผ่าน"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
         <button
           type="submit"
           disabled={loading || !password}
-          className="mt-4 w-full rounded-lg bg-slate-900 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          className="mt-4 w-full rounded-lg bg-slate-900 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-brand-600"
         >
           {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
         </button>

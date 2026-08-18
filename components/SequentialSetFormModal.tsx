@@ -133,7 +133,7 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
           <span className="mb-1 block text-xs font-medium text-slate-600">การ์ดในชุด</span>
           <div className="space-y-3">
             {rows.map((r, i) => (
-              <div key={i} className="space-y-2 rounded-lg border border-slate-200 p-2.5">
+              <div key={i} className="space-y-2 rounded-lg border border-slate-200 p-2.5 dark:border-slate-700">
                 <div className="flex items-center gap-2">
                   <input
                     value={r.name}
@@ -171,7 +171,7 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
           <button
             type="button"
             onClick={addRow}
-            className="mt-2 rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
+            className="mt-2 rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             + เพิ่มใบ
           </button>
@@ -183,7 +183,7 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+            className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             ยกเลิก
           </button>

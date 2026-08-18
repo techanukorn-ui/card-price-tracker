@@ -52,9 +52,25 @@ export const viewport: Viewport = {
     initialScale: 1,
     maximumScale: 1,
 }
+// Runs before hydration so the correct theme class is on <html> for the very
+// first paint — without this the page would flash light before switching to
+// a saved dark preference.
+const THEME_INIT_SCRIPT = `
+(function () {
+  try {
+    var stored = localStorage.getItem('theme');
+    var dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (dark) document.documentElement.classList.add('dark');
+  } catch (e) {}
+})();
+`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
           <html lang="th" className={`${bodyFont.variable} ${displayFont.variable}`}>
+            <head>
+              <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+            </head>
             <body className="min-h-screen font-sans">{children}</body>
           </html>
         )

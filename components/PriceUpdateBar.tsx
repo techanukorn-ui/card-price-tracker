@@ -85,28 +85,28 @@ export default function PriceUpdateBar({ onDone }: Props) {
   if (!job) return null
 
   return (
-    <div className="fixed inset-x-0 bottom-4 z-50 mx-auto w-[92%] max-w-md rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+    <div className="fixed inset-x-0 bottom-4 z-50 mx-auto w-[92%] max-w-md rounded-xl border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
       {!job.finished ? (
         <>
-          <p className="text-sm font-semibold text-slate-800">
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
             กำลังดึงราคาจาก SNKRDUNK... ({job.completed}/{job.total})
           </p>
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
             <div
               className="h-full bg-brand-600 transition-all"
               style={{ width: `${job.total ? (job.completed / job.total) * 100 : 0}%` }}
             />
           </div>
-          <p className="mt-1 text-[11px] text-slate-400">อย่าปิดแท็บที่ extension เปิดไว้จนกว่าจะเสร็จ</p>
+          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">อย่าปิดแท็บที่ extension เปิดไว้จนกว่าจะเสร็จ</p>
         </>
       ) : (
         <>
-          <p className="text-sm font-semibold text-slate-800">
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
             อัปเดตเสร็จแล้ว: สำเร็จ {job.successCount} ใบ
             {job.failures.length > 0 ? `, ล้มเหลว ${job.failures.length} ใบ` : ''}
           </p>
           {job.failures.length > 0 && (
-            <ul className="mt-1 max-h-24 space-y-0.5 overflow-y-auto text-[11px] text-red-600">
+            <ul className="mt-1 max-h-24 space-y-0.5 overflow-y-auto text-[11px] text-red-600 dark:text-red-400">
               {job.failures.map((f, i) => (
                 <li key={f.cardId + i}>{f.error}</li>
               ))}

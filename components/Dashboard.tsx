@@ -81,12 +81,16 @@ function StatTile({
   tone?: 'positive' | 'negative' | 'neutral'
 }) {
   const toneClass =
-    tone === 'positive' ? 'text-emerald-600' : tone === 'negative' ? 'text-red-500' : 'text-slate-900'
+    tone === 'positive'
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : tone === 'negative'
+        ? 'text-red-500 dark:text-red-400'
+        : 'text-slate-900 dark:text-slate-100'
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_16px_40px_-28px_rgba(30,20,60,0.35)]">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
+    <div className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_16px_40px_-28px_rgba(30,20,60,0.35)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
       <p className={`num mt-1.5 font-display text-xl font-semibold tracking-tight sm:text-2xl ${toneClass}`}>{value}</p>
-      {hint && <p className="mt-1 text-[10px] text-slate-400">{hint}</p>}
+      {hint && <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">{hint}</p>}
     </div>
   )
 }

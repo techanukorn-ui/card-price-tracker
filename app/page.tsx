@@ -25,6 +25,7 @@ import SellCardModal from '@/components/SellCardModal'
 import SellSequentialSetModal from '@/components/SellSequentialSetModal'
 import SequentialSetFormModal from '@/components/SequentialSetFormModal'
 import Dashboard from '@/components/Dashboard'
+import ThemeToggle from '@/components/ThemeToggle'
 
 type Tab = 'mine' | 'sold' | 'wishlist'
 type MyCardRenderItem =
@@ -462,7 +463,7 @@ function HomePageInner() {
     <main className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6">
       <header className="relative mb-6 flex items-center justify-between gap-2">
         <div
-          className="pointer-events-none absolute -top-16 left-1/2 h-56 w-[min(90%,640px)] -translate-x-1/2 rounded-full bg-brand-200/30 blur-3xl"
+          className="pointer-events-none absolute -top-16 left-1/2 h-56 w-[min(90%,640px)] -translate-x-1/2 rounded-full bg-brand-200/30 blur-3xl dark:bg-brand-500/15"
           aria-hidden
         />
         <button
@@ -476,51 +477,56 @@ function HomePageInner() {
             <img
               src={branding.iconUrl}
               alt=""
-              className="h-12 w-12 rounded-xl border border-brand-100 object-cover sm:h-14 sm:w-14"
+              className="h-12 w-12 rounded-xl border border-brand-100 object-cover dark:border-brand-500/30 sm:h-14 sm:w-14"
             />
           ) : (
-            <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-brand-100 bg-brand-50 text-xl sm:h-14 sm:w-14 sm:text-2xl">
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-brand-100 bg-brand-50 text-xl dark:border-brand-500/30 dark:bg-brand-500/15 sm:h-14 sm:w-14 sm:text-2xl">
               🃏
             </span>
           )}
           <div>
-            <h1 className="font-display text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+            <h1 className="font-display text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 sm:text-2xl">
               {branding?.title || 'Card Price Tracker'}
             </h1>
-            <p className="mt-0.5 text-xs text-slate-400">คลังการ์ดสะสม Pokémon &amp; Sports</p>
+            <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">คลังการ์ดสะสม Pokémon &amp; Sports</p>
           </div>
         </button>
-        <div className="relative flex shrink-0 flex-col items-end gap-1.5">
-          {readOnly && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-medium text-slate-500">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              มุมมองสาธารณะ · ดูอย่างเดียว
-            </span>
-          )}
-          {readOnly ? (
-            exchangeRateInfo && (
-              <span className="num rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
-                เรท {exchangeRateInfo.rate} · {formatRelative(exchangeRateInfo.updatedAt)}
+        <div className="relative flex shrink-0 items-start gap-2">
+          <div className="flex flex-col items-end gap-1.5">
+            {readOnly && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-medium text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                มุมมองสาธารณะ · ดูอย่างเดียว
               </span>
-            )
-          ) : (
-            <button
-              onClick={() => setRateSettingsOpen(true)}
-              className="num rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
-            >
-              {exchangeRateInfo
-                ? `เรท ${exchangeRateInfo.rate} · ${formatRelative(exchangeRateInfo.updatedAt)}`
-                : 'ตั้งเรทค่าเงิน'}
-            </button>
-          )}
+            )}
+            {readOnly ? (
+              exchangeRateInfo && (
+                <span className="num rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+                  เรท {exchangeRateInfo.rate} · {formatRelative(exchangeRateInfo.updatedAt)}
+                </span>
+              )
+            ) : (
+              <button
+                onClick={() => setRateSettingsOpen(true)}
+                className="num rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 dark:bg-brand-500/15 dark:text-brand-300 dark:hover:bg-brand-500/25"
+              >
+                {exchangeRateInfo
+                  ? `เรท ${exchangeRateInfo.rate} · ${formatRelative(exchangeRateInfo.updatedAt)}`
+                  : 'ตั้งเรทค่าเงิน'}
+              </button>
+            )}
+          </div>
+          <ThemeToggle />
         </div>
       </header>
 
-      <div className="mb-6 flex gap-2 rounded-xl bg-slate-100 p-1">
+      <div className="mb-6 flex gap-2 rounded-xl bg-slate-100 p-1 dark:bg-slate-900">
         <button
           onClick={() => setTab('mine')}
           className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-            tab === 'mine' ? 'bg-white text-brand-700 shadow' : 'text-slate-500'
+            tab === 'mine'
+              ? 'bg-white text-brand-700 shadow dark:bg-slate-800 dark:text-brand-300'
+              : 'text-slate-500 dark:text-slate-400'
           }`}
         >
           การ์ดของฉัน ({cards.filter((c) => !c.is_wishlist && !c.is_sold).length})
@@ -528,7 +534,9 @@ function HomePageInner() {
         <button
           onClick={() => setTab('sold')}
           className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-            tab === 'sold' ? 'bg-white text-brand-700 shadow' : 'text-slate-500'
+            tab === 'sold'
+              ? 'bg-white text-brand-700 shadow dark:bg-slate-800 dark:text-brand-300'
+              : 'text-slate-500 dark:text-slate-400'
           }`}
         >
           ขายแล้ว ({cards.filter((c) => !c.is_wishlist && c.is_sold).length})
@@ -536,7 +544,9 @@ function HomePageInner() {
         <button
           onClick={() => setTab('wishlist')}
           className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-            tab === 'wishlist' ? 'bg-white text-brand-700 shadow' : 'text-slate-500'
+            tab === 'wishlist'
+              ? 'bg-white text-brand-700 shadow dark:bg-slate-800 dark:text-brand-300'
+              : 'text-slate-500 dark:text-slate-400'
           }`}
         >
           Wishlist ({cards.filter((c) => c.is_wishlist).length})
@@ -544,7 +554,7 @@ function HomePageInner() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
           โหลดข้อมูลผิดพลาด: {error}
         </div>
       )}
@@ -600,7 +610,7 @@ function HomePageInner() {
           <Dashboard cards={cards} priceHistory={priceHistory} latestPriceByCard={latestPriceByCard} />
 
           <div className="mb-4 mt-8 flex items-center justify-between">
-            <h2 className="font-display text-xl font-semibold tracking-tight text-slate-900">การ์ดของฉัน</h2>
+            <h2 className="font-display text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">การ์ดของฉัน</h2>
             {!readOnly && (
               <div className="flex flex-wrap gap-2">
                 <button
@@ -611,19 +621,19 @@ function HomePageInner() {
                 </button>
                 <button
                   onClick={() => setSequentialSetFormOpen(true)}
-                  className="rounded-lg bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-200"
+                  className="rounded-lg bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-200 dark:bg-brand-500/15 dark:text-brand-300 dark:hover:bg-brand-500/25"
                 >
                   + Sequential Set
                 </button>
                 <button
                   onClick={() => handleUpdatePrices(myCards)}
-                  className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+                  className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
                   อัปเดตราคา (คอม)
                 </button>
                 <button
                   onClick={() => handleUpdatePricesMobile(myCards)}
-                  className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+                  className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
                   อัปเดตราคา (มือถือ)
                 </button>
@@ -641,14 +651,14 @@ function HomePageInner() {
                 item.type === 'set' ? (
                   <div
                     key={item.setId}
-                    className="col-span-2 rounded-xl border-2 border-brand-200 bg-brand-50/40 p-3 sm:col-span-3 lg:col-span-4"
+                    className="col-span-2 rounded-xl border-2 border-brand-200 bg-brand-50/40 p-3 dark:border-brand-500/25 dark:bg-brand-500/10 sm:col-span-3 lg:col-span-4"
                   >
                     <div className="mb-2 flex items-center justify-between">
-                      <p className="text-xs font-semibold text-brand-700">Sequential Set · {item.cards.length} ใบ</p>
+                      <p className="text-xs font-semibold text-brand-700 dark:text-brand-300">Sequential Set · {item.cards.length} ใบ</p>
                       {!readOnly && (
                         <button
                           onClick={() => setSellingSet(item.cards)}
-                          className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+                          className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:hover:bg-emerald-500/25"
                         >
                           ขายทั้งเซ็ต
                         </button>
@@ -707,7 +717,7 @@ function HomePageInner() {
           </div>
 
           <div className="mb-4 mt-6 flex items-center justify-between">
-            <h2 className="font-display text-xl font-semibold tracking-tight text-slate-900">ขายแล้ว</h2>
+            <h2 className="font-display text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">ขายแล้ว</h2>
           </div>
 
           {soldCards.length === 0 ? (
@@ -720,14 +730,14 @@ function HomePageInner() {
                 item.type === 'set' ? (
                   <div
                     key={item.setId}
-                    className="col-span-2 rounded-xl border-2 border-brand-200 bg-brand-50/40 p-3 sm:col-span-3 lg:col-span-4"
+                    className="col-span-2 rounded-xl border-2 border-brand-200 bg-brand-50/40 p-3 dark:border-brand-500/25 dark:bg-brand-500/10 sm:col-span-3 lg:col-span-4"
                   >
                     <div className="mb-2 flex items-center justify-between">
-                      <p className="text-xs font-semibold text-brand-700">Sequential Set · {item.cards.length} ใบ</p>
+                      <p className="text-xs font-semibold text-brand-700 dark:text-brand-300">Sequential Set · {item.cards.length} ใบ</p>
                       {!readOnly && (
                         <button
                           onClick={() => handleUnsellSet(item.cards)}
-                          className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200"
+                          className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                         >
                           ยกเลิกขายทั้งเซ็ต
                         </button>
@@ -767,7 +777,7 @@ function HomePageInner() {
       ) : (
         <>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-display text-xl font-semibold tracking-tight text-slate-900">Wishlist</h2>
+            <h2 className="font-display text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Wishlist</h2>
             {!readOnly && (
               <div className="flex flex-wrap gap-2">
                 <button
@@ -778,13 +788,13 @@ function HomePageInner() {
                 </button>
                 <button
                   onClick={() => handleUpdatePrices(wishlistCards)}
-                  className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+                  className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
                   อัปเดตราคา (คอม)
                 </button>
                 <button
                   onClick={() => handleUpdatePricesMobile(wishlistCards)}
-                  className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+                  className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
                   อัปเดตราคา (มือถือ)
                 </button>
@@ -888,7 +898,7 @@ function HomePageInner() {
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-300 py-16 text-center text-slate-400">
+    <div className="rounded-xl border border-dashed border-slate-300 py-16 text-center text-slate-400 dark:border-slate-700 dark:text-slate-500">
       {text}
     </div>
   )
@@ -904,10 +914,14 @@ function StatTile({
   tone?: 'positive' | 'negative' | 'neutral'
 }) {
   const toneClass =
-    tone === 'positive' ? 'text-emerald-600' : tone === 'negative' ? 'text-red-500' : 'text-slate-900'
+    tone === 'positive'
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : tone === 'negative'
+        ? 'text-red-500 dark:text-red-400'
+        : 'text-slate-900 dark:text-slate-100'
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_16px_40px_-28px_rgba(30,20,60,0.35)]">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
+    <div className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_16px_40px_-28px_rgba(30,20,60,0.35)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
       <p className={`num mt-1.5 font-display text-xl font-semibold tracking-tight sm:text-2xl ${toneClass}`}>{value}</p>
     </div>
   )

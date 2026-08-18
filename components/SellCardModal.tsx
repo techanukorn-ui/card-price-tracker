@@ -115,7 +115,7 @@ export default function SellCardModal({ card, onClose, onSold }: Props) {
               {costs.map((c, i) => (
                 <label
                   key={i}
-                  className="flex items-center gap-2 rounded-md border border-slate-200 px-2.5 py-1.5 text-sm"
+                  className="flex items-center gap-2 rounded-md border border-slate-200 px-2.5 py-1.5 text-sm dark:border-slate-700"
                 >
                   <input type="checkbox" checked={selectedIndices.includes(i)} onChange={() => toggleIndex(i)} />
                   <span>
@@ -154,7 +154,7 @@ export default function SellCardModal({ card, onClose, onSold }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+            className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             ยกเลิก
           </button>

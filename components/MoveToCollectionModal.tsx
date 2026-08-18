@@ -64,7 +64,7 @@ export default function MoveToCollectionModal({ card, onClose, onMoved }: Props)
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+            className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             ยกเลิก
           </button>
