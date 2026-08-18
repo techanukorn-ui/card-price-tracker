@@ -43,6 +43,11 @@ export default function CardTile({
 
   const body = (
     <>
+      {card.item_type !== SEALED_BOX_ITEM_TYPE && (
+        <p className="mb-1.5 text-center text-[10px] font-bold tracking-wide text-gold-600 dark:text-gold-300">
+          {card.grade === 'Raw' && card.raw_condition ? `Raw (${card.raw_condition})` : card.grade}
+        </p>
+      )}
       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gradient-to-br from-slate-100 to-brand-50 dark:from-slate-800 dark:to-brand-500/10">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -54,13 +59,8 @@ export default function CardTile({
         <span className="pointer-events-none absolute right-1.5 top-1.5 h-3 w-3 border-r border-t border-brand-300/70 dark:border-brand-400/50" />
         <span className="pointer-events-none absolute bottom-1.5 left-1.5 h-3 w-3 border-b border-l border-brand-300/70 dark:border-brand-400/50" />
         <span className="pointer-events-none absolute bottom-1.5 right-1.5 h-3 w-3 border-b border-r border-brand-300/70 dark:border-brand-400/50" />
-        {card.item_type !== SEALED_BOX_ITEM_TYPE && (
-          <span className="absolute left-1/2 top-2.5 -translate-x-1/2 whitespace-nowrap rounded-full bg-slate-950/85 px-2.5 py-0.5 text-[10px] font-bold tracking-wide text-gold-300 shadow-sm backdrop-blur-[2px]">
-            {card.grade === 'Raw' && card.raw_condition ? `Raw (${card.raw_condition})` : card.grade}
-          </span>
-        )}
         {qty > 1 && (
-          <span className="absolute right-4 top-4 rounded-full bg-brand-600/90 px-2 py-0.5 text-[11px] font-semibold text-white">
+          <span className="absolute right-1.5 top-1.5 rounded-full bg-brand-600/90 px-2 py-0.5 text-[11px] font-semibold text-white">
             ×{qty}
           </span>
         )}
