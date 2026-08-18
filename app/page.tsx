@@ -475,7 +475,13 @@ function HomePageInner() {
           )}
           <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{branding?.title || 'Card Price Tracker'}</h1>
         </button>
-        {!readOnly && (
+        {readOnly ? (
+          exchangeRateInfo && (
+            <span className="shrink-0 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">
+              เรท {exchangeRateInfo.rate} · {formatRelative(exchangeRateInfo.updatedAt)}
+            </span>
+          )
+        ) : (
           <button
             onClick={() => setRateSettingsOpen(true)}
             className="shrink-0 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
