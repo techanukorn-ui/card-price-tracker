@@ -14,5 +14,14 @@ export const supabaseAdmin = createClient(
     serviceKey || 'placeholder',
   {
         auth: { persistSession: false },
+        // Next.js patches the global fetch on the server to participate in its
+        // Data Cache — without opting out here, supabase-js's requests can get
+        // cached across requests (observed: generateMetadata in app/layout.tsx
+        // serving a site_icon_url/updated_at read that was hours stale, even
+        // with `export const dynamic = 'force-dynamic'` on the route). This
+        // client is only ever used server-side, so always bypass that cache.
+        global: {
+            fetch: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, { ...init, cache: 'no-store' }),
+        },
   }
   )

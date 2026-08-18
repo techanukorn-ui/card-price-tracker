@@ -232,6 +232,7 @@ function HomePageInner() {
   useEffect(() => {
     loadBranding()
   }, [loadBranding])
+  useRefetchOnResume(loadBranding)
 
   const loadData = useCallback(async () => {
     setError(null)
