@@ -210,6 +210,10 @@ function HomePageInner() {
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterItemType, setFilterItemType] = useState('all')
   const [filterGrade, setFilterGrade] = useState('all')
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const activeFilterCount = [filterCategory !== 'all', filterItemType !== 'all', filterGrade !== 'all'].filter(
+    Boolean
+  ).length
 
   const [mobileJob, setMobileJob] = useState<MobileBatchJob | null>(null)
   useEffect(() => {
@@ -560,46 +564,69 @@ function HomePageInner() {
       )}
 
       {!loading && cards.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="ค้นหาชื่อการ์ด..."
-            className="input min-w-[140px] flex-1"
-          />
-          <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="input !w-auto">
-            <option value="all">ทุกหมวดหมู่</option>
-            {CATEGORY_OPTIONS.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <select value={filterItemType} onChange={(e) => setFilterItemType(e.target.value)} className="input !w-auto">
-            <option value="all">ทุกประเภท</option>
-            {ITEM_TYPE_OPTIONS.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-          {filterItemType !== SEALED_BOX_ITEM_TYPE && (
-            <select value={filterGrade} onChange={(e) => setFilterGrade(e.target.value)} className="input !w-auto">
-              <option value="all">ทุกเกรด</option>
-              {gradeOptions.map((g) => (
-                <option key={g} value={g}>
-                  {g}
+        <div className="mb-4 space-y-2">
+          <div className="flex gap-2">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="ค้นหาชื่อการ์ด..."
+              className="input min-w-[140px] flex-1"
+            />
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((v) => !v)}
+              className="relative shrink-0 rounded-lg border border-slate-300 px-3 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 sm:hidden"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M4 6h16M7 12h10M10 18h4"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+              {activeFilterCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand-600 text-[10px] font-bold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </div>
+          <div className={`flex-wrap gap-2 sm:flex ${filtersOpen ? 'flex' : 'hidden'}`}>
+            <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="input !w-auto">
+              <option value="all">ทุกหมวดหมู่</option>
+              {CATEGORY_OPTIONS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
                 </option>
               ))}
             </select>
-          )}
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} className="input !w-auto">
-            {(Object.keys(SORT_LABELS) as SortOption[]).map((s) => (
-              <option key={s} value={s}>
-                เรียงตาม: {SORT_LABELS[s]}
-              </option>
-            ))}
-          </select>
+            <select value={filterItemType} onChange={(e) => setFilterItemType(e.target.value)} className="input !w-auto">
+              <option value="all">ทุกประเภท</option>
+              {ITEM_TYPE_OPTIONS.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            {filterItemType !== SEALED_BOX_ITEM_TYPE && (
+              <select value={filterGrade} onChange={(e) => setFilterGrade(e.target.value)} className="input !w-auto">
+                <option value="all">ทุกเกรด</option>
+                {gradeOptions.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            )}
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} className="input !w-auto">
+              {(Object.keys(SORT_LABELS) as SortOption[]).map((s) => (
+                <option key={s} value={s}>
+                  เรียงตาม: {SORT_LABELS[s]}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       )}
 
