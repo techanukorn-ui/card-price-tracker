@@ -13,6 +13,7 @@ import {
   requestPriceUpdate,
 } from '@/lib/priceUpdateBridge'
 import { buildMobileBatchStartUrl, fetchExchangeRate, loadMobileJob, MobileBatchJob, saveMobileJob } from '@/lib/mobilePriceUpdate'
+import { useRefetchOnResume } from '@/lib/useRefetchOnResume'
 import CardPriceChart from '@/components/CardPriceChart'
 import CardFormModal from '@/components/CardFormModal'
 import PriceUpdateBar from '@/components/PriceUpdateBar'
@@ -60,6 +61,7 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
   useEffect(() => {
     load()
   }, [load])
+  useRefetchOnResume(load)
 
   async function handleDelete() {
     if (!card) return

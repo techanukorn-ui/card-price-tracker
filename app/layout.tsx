@@ -23,7 +23,13 @@ export async function generateMetadata(): Promise<Metadata> {
     return {
         title,
         description: DESCRIPTION,
-        icons: data?.site_icon_url ? { icon: `/api/site-icon?v=${version}` } : undefined,
+        icons: data?.site_icon_url
+            ? { icon: `/api/site-icon?v=${version}`, apple: `/api/site-icon?v=${version}` }
+            : undefined,
+        appleWebApp: {
+            title,
+            statusBarStyle: 'default',
+        },
     }
 }
 

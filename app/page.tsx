@@ -13,6 +13,7 @@ import {
   requestPriceUpdate,
 } from '@/lib/priceUpdateBridge'
 import { buildMobileBatchStartUrl, fetchExchangeRate, loadMobileJob, MobileBatchJob, saveMobileJob } from '@/lib/mobilePriceUpdate'
+import { useRefetchOnResume } from '@/lib/useRefetchOnResume'
 import CardTile from '@/components/CardTile'
 import PriceUpdateBar from '@/components/PriceUpdateBar'
 import MobilePriceUpdateBar from '@/components/MobilePriceUpdateBar'
@@ -248,6 +249,7 @@ function HomePageInner() {
   useEffect(() => {
     loadData()
   }, [loadData])
+  useRefetchOnResume(loadData)
 
   const latestPriceByCard = useMemo(() => {
     const map = new Map<string, PriceHistory>()
