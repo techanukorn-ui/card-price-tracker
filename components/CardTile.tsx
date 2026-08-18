@@ -44,7 +44,7 @@ export default function CardTile({
   const body = (
     <>
       {card.item_type !== SEALED_BOX_ITEM_TYPE && (
-        <p className="mb-1.5 text-center text-[10px] font-bold tracking-wide text-gold-600 dark:text-gold-300">
+        <p className="mb-1.5 text-center text-sm font-bold tracking-wide text-gold-600 dark:text-gold-300">
           {card.grade === 'Raw' && card.raw_condition ? `Raw (${card.raw_condition})` : card.grade}
         </p>
       )}
