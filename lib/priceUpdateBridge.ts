@@ -12,6 +12,7 @@ export interface PriceUpdateCardInput {
   grade: string
   rawCondition: string | null
   itemType: string
+  hasImage: boolean
 }
 
 export interface PriceUpdateProgress {
@@ -50,6 +51,7 @@ export function cardToUpdateInput(card: Card): PriceUpdateCardInput | null {
     grade: card.grade,
     rawCondition: card.raw_condition,
     itemType: card.item_type,
+    hasImage: !!(card.image_url || card.custom_image_url),
   }
 }
 
@@ -59,12 +61,13 @@ export function requestPriceUpdate(cards: PriceUpdateCardInput[]): string {
     new CustomEvent('cpt:update-request', {
       detail: {
         jobId,
-        cards: cards.map(({ id, url, grade, rawCondition, itemType }) => ({
+        cards: cards.map(({ id, url, grade, rawCondition, itemType, hasImage }) => ({
           id,
           url,
           grade,
           rawCondition,
           itemType,
+          hasImage,
         })),
       },
     })

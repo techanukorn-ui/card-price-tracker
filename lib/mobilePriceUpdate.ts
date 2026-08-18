@@ -16,6 +16,7 @@ export interface MobileQueueItem {
   grade: string
   rawCondition: string | null
   itemType: string
+  hasImage: boolean
 }
 
 export interface MobileBatchJob {
@@ -60,7 +61,14 @@ export function buildMobileBatchStartUrl(
 ): { url: string; job: MobileBatchJob } | null {
   const queue: MobileQueueItem[] = cards
     .filter((c) => !!c.url)
-    .map((c) => ({ id: c.id, url: c.url, grade: c.grade, rawCondition: c.rawCondition, itemType: c.itemType }))
+    .map((c) => ({
+      id: c.id,
+      url: c.url,
+      grade: c.grade,
+      rawCondition: c.rawCondition,
+      itemType: c.itemType,
+      hasImage: c.hasImage,
+    }))
 
   if (queue.length === 0) return null
 

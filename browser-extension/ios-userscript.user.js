@@ -99,6 +99,13 @@
     return Array.from(document.querySelectorAll('button')).find((b) => b.textContent.trim() === label) || null
   }
 
+  // Same rule as browser-extension/background.js's findMainImage(): the
+  // card's own product photo is the one img[src] containing "size=l".
+  function findMainImage() {
+    const img = Array.from(document.querySelectorAll('img')).find((el) => (el.src || '').includes('size=l'))
+    return img ? img.src : null
+  }
+
   async function scrapePrice() {
     const tableReady = await pollUntil(() => readRows().length > 0, 8000)
     if (!tableReady) return { ok: false, error: 'โหลดตารางประวัติการขายไม่ทัน' }
@@ -136,7 +143,9 @@
     const used = withinWeek.length > 0 ? withinWeek.slice(0, 3) : [parsed[0]]
     const avg = used.reduce((sum, r) => sum + r.price, 0) / used.length
 
-    return { ok: true, price_jpy: Math.round(avg * 100) / 100 }
+    const image_url = card.hasImage ? null : findMainImage()
+
+    return { ok: true, price_jpy: Math.round(avg * 100) / 100, image_url }
   }
 
   function nextStepUrl(nextIndex) {
@@ -158,7 +167,12 @@
           await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ card_id: card.id, market_price_jpy: result.price_jpy, exchange_rate: rate }),
+            body: JSON.stringify({
+              card_id: card.id,
+              market_price_jpy: result.price_jpy,
+              exchange_rate: rate,
+              image_url: result.image_url || undefined,
+            }),
           })
         } catch (e) {
           console.error('[cpt-mobile] ส่งราคากลับไม่สำเร็จ:', card.id, e)

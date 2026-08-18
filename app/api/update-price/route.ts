@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 // POST /api/update-price
-// Body: { card_id: string, market_price_jpy: number, exchange_rate: number, market_price_thb?: number }
+// Body: { card_id: string, market_price_jpy: number, exchange_rate: number, market_price_thb?: number, image_url?: string }
 //
 // Inserts a new snapshot row into price_history. Never updates/overwrites an
 // existing row — every call appends a new row so the full price history is
 // kept. market_price_thb is computed from jpy * exchange_rate when not
-// provided directly.
+// provided directly. If image_url is passed and the card still has no
+// image_url/custom_image_url, it's written to cards.image_url (auto-fill
+// rule — see CLAUDE.md "กฎการเติมรูปภาพ").
 export async function POST(req: NextRequest) {
   let body: any
   try {
@@ -16,7 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'invalid JSON body' }, { status: 400 })
   }
 
-  const { card_id, market_price_jpy, exchange_rate } = body || {}
+  const { card_id, market_price_jpy, exchange_rate, image_url } = body || {}
 
   if (!card_id || typeof card_id !== 'string') {
     return NextResponse.json({ success: false, error: 'card_id is required' }, { status: 400 })
@@ -35,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   const { data: card, error: cardErr } = await supabaseAdmin
     .from('cards')
-    .select('id')
+    .select('id, image_url, custom_image_url')
     .eq('id', card_id)
     .maybeSingle()
 
@@ -44,6 +46,10 @@ export async function POST(req: NextRequest) {
   }
   if (!card) {
     return NextResponse.json({ success: false, error: `card_id ${card_id} not found` }, { status: 404 })
+  }
+
+  if (typeof image_url === 'string' && image_url && !card.image_url && !card.custom_image_url) {
+    await supabaseAdmin.from('cards').update({ image_url }).eq('id', card_id)
   }
 
   const { data, error } = await supabaseAdmin

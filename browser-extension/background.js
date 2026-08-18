@@ -51,7 +51,7 @@ function waitForTabLoad(tabId, timeoutMs = 20000) {
 // page load (Next.js hydration + a data fetch), so a fixed short delay is
 // not reliable — this polls for the table (and, after clicking a grade
 // filter, for rows actually matching that grade) instead of guessing a wait.
-function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedBoxItemType) {
+function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedBoxItemType, hasImage) {
   function parseSoldAt(s) {
     s = s.trim()
     if (s === 'たった今') return new Date()
@@ -81,6 +81,15 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedB
 
   function findButton(label) {
     return Array.from(document.querySelectorAll('button')).find((b) => b.textContent.trim() === label) || null
+  }
+
+  // The card's own product photo on SNKRDUNK — CDN URL pattern
+  // https://cdn.snkrdunk.com/upload_bg_removed/....webp?size=l. There's
+  // normally exactly one such image on the page; it's distinct from the
+  // og:image meta tag and the size=m thumbnails in the "related cards" zone.
+  function findMainImage() {
+    const img = Array.from(document.querySelectorAll('img')).find((el) => (el.src || '').includes('size=l'))
+    return img ? img.src : null
   }
 
   function sleep(ms) {
@@ -152,11 +161,14 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedB
     const used = withinWeek.length > 0 ? withinWeek.slice(0, 3) : [parsed[0]]
     const avg = used.reduce((sum, r) => sum + r.price, 0) / used.length
 
+    const image_url = hasImage ? null : findMainImage()
+
     return {
       ok: true,
       price_jpy: Math.round(avg * 100) / 100,
       sampleCount: used.length,
       usedFallback: withinWeek.length === 0,
+      image_url,
     }
    } catch (e) {
      return { ok: false, error: 'สคริปต์อ่านหน้า SNKRDUNK พัง: ' + String((e && e.message) || e) }
@@ -231,7 +243,7 @@ async function runJob(jobId, cards, webappTabId) {
       const injectionResults = await chrome.scripting.executeScript({
         target: { tabId: workTab.id },
         func: scrapeCardOnPage,
-        args: [card.grade, card.rawCondition, card.itemType, '1個', SEALED_BOX_ITEM_TYPE],
+        args: [card.grade, card.rawCondition, card.itemType, '1個', SEALED_BOX_ITEM_TYPE, !!card.hasImage],
       })
       const injection = injectionResults && injectionResults[0]
       const result = injection && injection.result
@@ -247,7 +259,12 @@ async function runJob(jobId, cards, webappTabId) {
         const postRes = await fetch(UPDATE_PRICE_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ card_id: card.id, market_price_jpy: result.price_jpy, exchange_rate: rate }),
+          body: JSON.stringify({
+            card_id: card.id,
+            market_price_jpy: result.price_jpy,
+            exchange_rate: rate,
+            image_url: result.image_url || undefined,
+          }),
         })
         const postJson = await postRes.json().catch(() => ({}))
         if (postRes.ok && postJson.success) {
