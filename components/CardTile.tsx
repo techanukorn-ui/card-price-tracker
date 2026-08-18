@@ -73,7 +73,7 @@ export default function CardTile({
           {card.category}
           {card.item_type === SEALED_BOX_ITEM_TYPE ? ` · ${SEALED_BOX_ITEM_TYPE}` : ''}
         </p>
-        <p className="font-display line-clamp-2 text-[15px] font-medium leading-snug text-slate-900 dark:text-slate-100">{card.name}</p>
+        <p className="font-display line-clamp-2 min-h-[2.75em] text-[15px] font-medium leading-snug text-slate-900 dark:text-slate-100">{card.name}</p>
 
         {(mode === 'mine' || mode === 'sold') && (
           <>
