@@ -34,7 +34,7 @@ export default function ExchangeRateSettingsModal({ onClose, onSaved }: Props) {
     setFetchingLive(true)
     setError(null)
     try {
-      const res = await fetch(LIVE_RATE_URL)
+      const res = await fetch(LIVE_RATE_URL, { cache: 'no-store' })
       const json = await res.json()
       const rate = json?.rates?.THB
       if (typeof rate !== 'number') throw new Error('อ่านค่าจาก API ไม่ได้')
