@@ -11,14 +11,14 @@ interface Props {
 export default function PortfolioChart({ data }: Props) {
   if (data.length === 0) {
     return (
-      <div className="flex h-56 items-center justify-center rounded-xl border border-dashed border-slate-300 text-sm text-slate-400">
+      <div className="flex h-56 items-center justify-center rounded-2xl border border-dashed border-slate-300 text-sm text-slate-400">
         ยังไม่มีข้อมูลราคาพอสำหรับกราฟ
       </div>
     )
   }
 
   return (
-    <div className="h-64 w-full rounded-xl border border-slate-200 bg-white p-3">
+    <div className="h-64 w-full rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_16px_40px_-28px_rgba(30,20,60,0.35)]">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />

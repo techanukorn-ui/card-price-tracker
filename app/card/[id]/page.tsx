@@ -165,18 +165,22 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
       </Link>
 
       <div className="flex gap-4">
-        <div className="h-32 w-32 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100">
+        <div className="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-slate-100 to-brand-50">
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={image} alt={card.name} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-4xl text-slate-300">🃏</div>
           )}
+          <span className="pointer-events-none absolute left-1 top-1 h-3 w-3 border-l border-t border-brand-300/70" />
+          <span className="pointer-events-none absolute right-1 top-1 h-3 w-3 border-r border-t border-brand-300/70" />
+          <span className="pointer-events-none absolute bottom-1 left-1 h-3 w-3 border-b border-l border-brand-300/70" />
+          <span className="pointer-events-none absolute bottom-1 right-1 h-3 w-3 border-b border-r border-brand-300/70" />
         </div>
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             {card.item_type !== SEALED_BOX_ITEM_TYPE && (
-              <span className="inline-block rounded-full bg-slate-900 px-2 py-0.5 text-[11px] font-semibold text-white">
+              <span className="inline-block rounded-full bg-gold-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-gold-700">
                 {card.grade === 'Raw' && card.raw_condition ? `Raw (${card.raw_condition})` : card.grade}
               </span>
             )}
@@ -194,7 +198,7 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
               </span>
             )}
           </div>
-          <h1 className="mt-1 text-lg font-bold text-slate-900">{card.name}</h1>
+          <h1 className="font-display mt-1 text-lg font-semibold text-slate-900">{card.name}</h1>
           {card.snkrdunk_url && (
             <a
               href={card.snkrdunk_url}
@@ -269,7 +273,7 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
         )}
       </div>
 
-      <h2 className="mb-2 mt-6 text-sm font-semibold text-slate-700">ราคาย้อนหลัง</h2>
+      <h2 className="font-display mb-2 mt-6 text-base font-medium text-slate-800">ราคาย้อนหลัง</h2>
       <CardPriceChart history={history} />
 
       {history.length > 0 && (
@@ -280,7 +284,7 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
               className="flex items-center justify-between rounded-lg border border-slate-100 bg-white px-3 py-2 text-xs"
             >
               <span className="text-slate-500">{formatDateTime(h.fetched_at)}</span>
-              <span className="font-semibold text-slate-800">
+              <span className="num font-semibold text-slate-800">
                 {formatTHB(h.market_price_thb)} <span className="font-normal text-slate-400">({formatJPY(h.market_price_jpy)})</span>
               </span>
             </div>
@@ -355,10 +359,10 @@ function InfoTile({
   const toneClass =
     tone === 'positive' ? 'text-emerald-600' : tone === 'negative' ? 'text-red-500' : 'text-slate-900'
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3">
+    <div className="rounded-2xl border border-slate-200/70 bg-white p-3 shadow-[0_16px_40px_-28px_rgba(30,20,60,0.35)]">
       <p className="text-[11px] font-medium text-slate-500">{label}</p>
-      <p className={`mt-1 text-base font-bold ${toneClass}`}>{value}</p>
-      {hint && <p className="mt-0.5 text-[10px] text-slate-400">{hint}</p>}
+      <p className={`num font-display mt-1 text-base font-semibold ${toneClass}`}>{value}</p>
+      {hint && <p className="num mt-0.5 text-[10px] text-slate-400">{hint}</p>}
     </div>
   )
 }

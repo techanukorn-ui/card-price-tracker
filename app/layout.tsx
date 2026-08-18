@@ -1,6 +1,20 @@
 import type { Metadata, Viewport } from 'next'
+import { IBM_Plex_Sans_Thai, Taviraj } from 'next/font/google'
 import './globals.css'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+
+const bodyFont = IBM_Plex_Sans_Thai({
+    subsets: ['thai', 'latin'],
+    weight: ['400', '500', '600', '700'],
+    variable: '--font-body',
+    display: 'swap',
+})
+const displayFont = Taviraj({
+    subsets: ['thai', 'latin'],
+    weight: ['400', '500', '600', '700'],
+    variable: '--font-display',
+    display: 'swap',
+})
 
 const DEFAULT_TITLE = 'Card Price Tracker'
 const DESCRIPTION = 'ติดตามราคาการ์ดสะสม Pokémon / Sports'
@@ -40,8 +54,8 @@ export const viewport: Viewport = {
 }
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-          <html lang="th">
-            <body className="min-h-screen">{children}</body>
+          <html lang="th" className={`${bodyFont.variable} ${displayFont.variable}`}>
+            <body className="min-h-screen font-sans">{children}</body>
           </html>
         )
 }

@@ -460,37 +460,60 @@ function HomePageInner() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6">
-      <header className="mb-6 flex items-center justify-between gap-2">
+      <header className="relative mb-6 flex items-center justify-between gap-2">
+        <div
+          className="pointer-events-none absolute -top-16 left-1/2 h-56 w-[min(90%,640px)] -translate-x-1/2 rounded-full bg-brand-200/30 blur-3xl"
+          aria-hidden
+        />
         <button
           type="button"
           onClick={() => !readOnly && setBrandingSettingsOpen(true)}
           disabled={readOnly}
-          className="flex items-center gap-2 text-left disabled:cursor-default"
+          className="relative flex items-center gap-3 text-left disabled:cursor-default"
         >
           {branding?.iconUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={branding.iconUrl} alt="" className="h-12 w-12 rounded-md object-cover sm:h-14 sm:w-14" />
+            <img
+              src={branding.iconUrl}
+              alt=""
+              className="h-12 w-12 rounded-xl border border-brand-100 object-cover sm:h-14 sm:w-14"
+            />
           ) : (
-            <span className="text-xl sm:text-2xl">🃏</span>
-          )}
-          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{branding?.title || 'Card Price Tracker'}</h1>
-        </button>
-        {readOnly ? (
-          exchangeRateInfo && (
-            <span className="shrink-0 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">
-              เรท {exchangeRateInfo.rate} · {formatRelative(exchangeRateInfo.updatedAt)}
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-brand-100 bg-brand-50 text-xl sm:h-14 sm:w-14 sm:text-2xl">
+              🃏
             </span>
-          )
-        ) : (
-          <button
-            onClick={() => setRateSettingsOpen(true)}
-            className="shrink-0 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
-          >
-            {exchangeRateInfo
-              ? `เรท ${exchangeRateInfo.rate} · ${formatRelative(exchangeRateInfo.updatedAt)}`
-              : 'ตั้งเรทค่าเงิน'}
-          </button>
-        )}
+          )}
+          <div>
+            <h1 className="font-display text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+              {branding?.title || 'Card Price Tracker'}
+            </h1>
+            <p className="mt-0.5 text-xs text-slate-400">คลังการ์ดสะสม Pokémon &amp; Sports</p>
+          </div>
+        </button>
+        <div className="relative flex shrink-0 flex-col items-end gap-1.5">
+          {readOnly && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-medium text-slate-500">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              มุมมองสาธารณะ · ดูอย่างเดียว
+            </span>
+          )}
+          {readOnly ? (
+            exchangeRateInfo && (
+              <span className="num rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
+                เรท {exchangeRateInfo.rate} · {formatRelative(exchangeRateInfo.updatedAt)}
+              </span>
+            )
+          ) : (
+            <button
+              onClick={() => setRateSettingsOpen(true)}
+              className="num rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
+            >
+              {exchangeRateInfo
+                ? `เรท ${exchangeRateInfo.rate} · ${formatRelative(exchangeRateInfo.updatedAt)}`
+                : 'ตั้งเรทค่าเงิน'}
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="mb-6 flex gap-2 rounded-xl bg-slate-100 p-1">
@@ -577,7 +600,7 @@ function HomePageInner() {
           <Dashboard cards={cards} priceHistory={priceHistory} latestPriceByCard={latestPriceByCard} />
 
           <div className="mb-4 mt-8 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-800">การ์ดของฉัน</h2>
+            <h2 className="font-display text-xl font-semibold tracking-tight text-slate-900">การ์ดของฉัน</h2>
             {!readOnly && (
               <div className="flex flex-wrap gap-2">
                 <button
@@ -684,7 +707,7 @@ function HomePageInner() {
           </div>
 
           <div className="mb-4 mt-6 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-800">ขายแล้ว</h2>
+            <h2 className="font-display text-xl font-semibold tracking-tight text-slate-900">ขายแล้ว</h2>
           </div>
 
           {soldCards.length === 0 ? (
@@ -744,7 +767,7 @@ function HomePageInner() {
       ) : (
         <>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-slate-800">Wishlist</h2>
+            <h2 className="font-display text-xl font-semibold tracking-tight text-slate-900">Wishlist</h2>
             {!readOnly && (
               <div className="flex flex-wrap gap-2">
                 <button
@@ -883,9 +906,9 @@ function StatTile({
   const toneClass =
     tone === 'positive' ? 'text-emerald-600' : tone === 'negative' ? 'text-red-500' : 'text-slate-900'
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3">
-      <p className="text-[11px] font-medium text-slate-500">{label}</p>
-      <p className={`mt-1 text-base font-bold sm:text-lg ${toneClass}`}>{value}</p>
+    <div className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_16px_40px_-28px_rgba(30,20,60,0.35)]">
+      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <p className={`num mt-1.5 font-display text-xl font-semibold tracking-tight sm:text-2xl ${toneClass}`}>{value}</p>
     </div>
   )
 }

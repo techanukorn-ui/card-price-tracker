@@ -25,32 +25,32 @@ export default function CategoryBreakdown({ cards }: Props) {
 
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <p className="text-sm font-semibold text-slate-700">สัดส่วนต้นทุนตามหมวดหมู่</p>
+      <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-[0_16px_40px_-28px_rgba(30,20,60,0.35)]">
+        <p className="font-display text-base font-medium text-slate-800">สัดส่วนต้นทุนตามหมวดหมู่</p>
         <p className="mt-3 text-center text-xs text-slate-400">ยังไม่มีข้อมูลเพียงพอ</p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <p className="text-sm font-semibold text-slate-700">สัดส่วนต้นทุนตามหมวดหมู่</p>
-      <div className="mt-2 flex items-center gap-3">
+    <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-[0_16px_40px_-28px_rgba(30,20,60,0.35)]">
+      <p className="font-display text-base font-medium text-slate-800">สัดส่วนต้นทุนตามหมวดหมู่</p>
+      <div className="mt-3 flex items-center gap-4">
         <div className="h-28 w-28 shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={data} dataKey="value" nameKey="name" innerRadius={28} outerRadius={54} paddingAngle={2}>
+              <Pie data={data} dataKey="value" nameKey="name" innerRadius={30} outerRadius={54} paddingAngle={2}>
                 {data.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" />
                 ))}
               </Pie>
               <Tooltip formatter={(value: number) => formatTHB(value)} />
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="flex-1 space-y-1">
+        <div className="flex-1 space-y-1.5">
           {data.map((d, i) => (
-            <div key={d.name} className="flex items-center justify-between gap-2 text-xs">
+            <div key={d.name} className="flex items-center justify-between gap-2 border-t border-slate-100 pt-1.5 text-xs first:border-t-0 first:pt-0">
               <span className="flex items-center gap-1.5 text-slate-600">
                 <span
                   className="inline-block h-2 w-2 rounded-full"
@@ -58,7 +58,7 @@ export default function CategoryBreakdown({ cards }: Props) {
                 />
                 {d.name}
               </span>
-              <span className="font-semibold text-slate-800">
+              <span className="num font-display font-semibold text-slate-800">
                 {grandTotal === 0 ? 0 : Math.round((d.value / grandTotal) * 100)}%
               </span>
             </div>

@@ -43,37 +43,41 @@ export default function CardTile({
 
   const body = (
     <>
-      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-slate-100">
+      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gradient-to-br from-slate-100 to-brand-50">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt={card.name} className="h-full w-full object-cover" loading="lazy" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-3xl text-slate-300">🃏</div>
         )}
+        <span className="pointer-events-none absolute left-1.5 top-1.5 h-3 w-3 border-l border-t border-brand-300/70" />
+        <span className="pointer-events-none absolute right-1.5 top-1.5 h-3 w-3 border-r border-t border-brand-300/70" />
+        <span className="pointer-events-none absolute bottom-1.5 left-1.5 h-3 w-3 border-b border-l border-brand-300/70" />
+        <span className="pointer-events-none absolute bottom-1.5 right-1.5 h-3 w-3 border-b border-r border-brand-300/70" />
         {card.item_type !== SEALED_BOX_ITEM_TYPE && (
-          <span className="absolute left-1.5 top-1.5 rounded-full bg-slate-900/80 px-2 py-0.5 text-[11px] font-semibold text-white">
+          <span className="absolute left-4 top-4 rounded-full bg-gold-50/95 px-2 py-0.5 text-[10px] font-bold tracking-wide text-gold-700 shadow-sm">
             {card.grade === 'Raw' && card.raw_condition ? `Raw (${card.raw_condition})` : card.grade}
           </span>
         )}
         {qty > 1 && (
-          <span className="absolute right-1.5 top-1.5 rounded-full bg-brand-600/90 px-2 py-0.5 text-[11px] font-semibold text-white">
+          <span className="absolute right-4 top-4 rounded-full bg-brand-600/90 px-2 py-0.5 text-[11px] font-semibold text-white">
             ×{qty}
           </span>
         )}
       </div>
 
-      <div className="mt-2 space-y-1">
-        <p className="text-[10px] font-medium uppercase tracking-wide text-brand-500">
+      <div className="mt-2.5 space-y-1">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-500">
           {card.category}
           {card.item_type === SEALED_BOX_ITEM_TYPE ? ` · ${SEALED_BOX_ITEM_TYPE}` : ''}
         </p>
-        <p className="line-clamp-2 text-sm font-semibold leading-snug text-slate-800">{card.name}</p>
+        <p className="font-display line-clamp-2 text-[15px] font-medium leading-snug text-slate-900">{card.name}</p>
 
         {(mode === 'mine' || mode === 'sold') && (
           <>
-            <p className="text-xs text-slate-500">ต้นทุน {formatTHB(totalCostThb)}</p>
+            <p className="num text-xs text-slate-500">ต้นทุน {formatTHB(totalCostThb)}</p>
             {qty > 1 && card.costs_thb && card.costs_thb.length > 1 && (
-              <p className="text-[11px] text-slate-400">
+              <p className="num text-[11px] text-slate-400">
                 {card.costs_thb.map((c) => formatTHB(c)).join(' + ')}
               </p>
             )}
@@ -82,16 +86,18 @@ export default function CardTile({
 
         {mode === 'sold' ? (
           <>
-            <p className="text-sm font-bold text-slate-900">ขายได้ {formatTHB(card.sold_price_thb)}</p>
+            <p className="font-display num text-base font-semibold text-slate-900">
+              ขายได้ {formatTHB(card.sold_price_thb)}
+            </p>
             {card.sold_at && <p className="text-[11px] text-slate-400">ขายเมื่อ {formatRelative(card.sold_at)}</p>}
           </>
         ) : card.latestPrice ? (
           <>
-            <p className="text-sm font-bold text-slate-900">
+            <p className="font-display num text-base font-semibold text-slate-900">
               {formatTHB(marketThb)} <span className="text-xs font-normal text-slate-400">({formatJPY(marketJpy)})</span>
             </p>
             {qty > 1 && (
-              <p className="text-[11px] text-slate-500">
+              <p className="num text-[11px] text-slate-500">
                 {formatTHB(unitMarketThb)} ({formatJPY(unitMarketJpy)}) ต่อใบ × {qty}
               </p>
             )}
@@ -102,13 +108,21 @@ export default function CardTile({
         )}
 
         {mode === 'mine' && profitInfo && (
-          <p className={`text-xs font-semibold ${profitInfo.profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+          <p
+            className={`num inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+              profitInfo.profit >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
+            }`}
+          >
             {formatSigned(profitInfo.profit, formatTHB)} ({formatPct(profitInfo.marginPct)})
           </p>
         )}
 
         {mode === 'sold' && soldProfitInfo && (
-          <p className={`text-xs font-semibold ${soldProfitInfo.profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+          <p
+            className={`num inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+              soldProfitInfo.profit >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
+            }`}
+          >
             กำไร {formatSigned(soldProfitInfo.profit, formatTHB)} ({formatPct(soldProfitInfo.marginPct)})
           </p>
         )}
@@ -117,7 +131,7 @@ export default function CardTile({
   )
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">
+    <div className="rounded-2xl border border-slate-200/70 bg-white p-2.5 shadow-[0_16px_40px_-30px_rgba(30,20,60,0.4)] transition hover:shadow-[0_20px_44px_-26px_rgba(30,20,60,0.45)]">
       {linkHref ? (
         <Link href={linkHref} className="block">
           {body}

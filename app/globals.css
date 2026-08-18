@@ -7,8 +7,12 @@ html {
 }
 
 body {
-    background-color: #f8fafc;
-    color: #0f172a;
+    background-color: #faf9fb;
+    color: #1c1a24;
+}
+
+.num {
+    font-variant-numeric: tabular-nums;
 }
 
 .scrollbar-thin::-webkit-scrollbar {
