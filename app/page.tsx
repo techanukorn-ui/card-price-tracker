@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { CATEGORY_OPTIONS, Card, CardWithLatestPrice, ITEM_TYPE_OPTIONS, PriceHistory, SEALED_BOX_ITEM_TYPE } from '@/lib/types'
@@ -26,6 +26,8 @@ import SellSequentialSetModal from '@/components/SellSequentialSetModal'
 import SequentialSetFormModal from '@/components/SequentialSetFormModal'
 import Dashboard from '@/components/Dashboard'
 import ThemeToggle from '@/components/ThemeToggle'
+
+const LIST_SCROLL_KEY = 'card-tracker:list-scroll'
 
 type Tab = 'mine' | 'sold' | 'wishlist'
 type MyCardRenderItem =
@@ -256,6 +258,23 @@ function HomePageInner() {
     loadData()
   }, [loadData])
   useRefetchOnResume(loadData)
+
+  // Remember scroll position across a visit to a card's detail page so
+  // coming back doesn't dump you back at the top of the list. Saving in the
+  // unmount cleanup (rather than on every scroll event) captures the exact
+  // position right as the user navigates away.
+  const scrollRestoredRef = useRef(false)
+  useEffect(() => {
+    return () => {
+      sessionStorage.setItem(LIST_SCROLL_KEY, String(window.scrollY))
+    }
+  }, [])
+  useEffect(() => {
+    if (loading || scrollRestoredRef.current) return
+    scrollRestoredRef.current = true
+    const saved = sessionStorage.getItem(LIST_SCROLL_KEY)
+    if (saved) window.scrollTo(0, Number(saved))
+  }, [loading])
 
   const latestPriceByCard = useMemo(() => {
     const map = new Map<string, PriceHistory>()
