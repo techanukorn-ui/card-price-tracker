@@ -260,14 +260,17 @@ function HomePageInner() {
   useRefetchOnResume(loadData)
 
   // Remember scroll position across a visit to a card's detail page so
-  // coming back doesn't dump you back at the top of the list. Saving in the
-  // unmount cleanup (rather than on every scroll event) captures the exact
-  // position right as the user navigates away.
+  // coming back doesn't dump you back at the top of the list. Save on the
+  // click's capture phase — Next.js resets scroll to 0 as part of the
+  // navigation itself, so waiting for unmount (or even the click's bubble
+  // phase) can already see scrollY as 0 by the time we read it.
   const scrollRestoredRef = useRef(false)
   useEffect(() => {
-    return () => {
+    function save() {
       sessionStorage.setItem(LIST_SCROLL_KEY, String(window.scrollY))
     }
+    window.addEventListener('click', save, true)
+    return () => window.removeEventListener('click', save, true)
   }, [])
   useEffect(() => {
     if (loading || scrollRestoredRef.current) return
