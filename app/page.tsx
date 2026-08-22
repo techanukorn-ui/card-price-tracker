@@ -197,11 +197,7 @@ function HomePageInner() {
   const searchParams = useSearchParams()
   const readOnly = searchParams.get('readonly') === '1'
 
-  const [tab, setTab] = useState<Tab>(() => {
-    if (typeof window === 'undefined') return 'mine'
-    const saved = sessionStorage.getItem(LIST_TAB_KEY)
-    return isTab(saved) ? saved : 'mine'
-  })
+  const [tab, setTab] = useState<Tab>('mine')
   const [cards, setCards] = useState<Card[]>([])
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([])
   const [loading, setLoading] = useState(true)
@@ -284,10 +280,24 @@ function HomePageInner() {
 
   // Remember which tab (mine/sold/wishlist) was active for the same reason —
   // the list page fully remounts on the way back from a card's detail page,
-  // which would otherwise reset the tab to the 'mine' default.
+  // which would otherwise reset the tab to the 'mine' default. Restoring it
+  // has to happen in an effect (after mount), not in the useState initializer
+  // — reading sessionStorage during the initial render would make the
+  // server-rendered HTML (always 'mine') mismatch the client's first render,
+  // which corrupts hydration (the tab label and the rendered list end up
+  // showing different tabs). Saving only happens from selectTab (an explicit
+  // user click), not from a generic effect on every `tab` change — an effect
+  // would also fire right after this restore runs and, depending on effect
+  // ordering, can re-write the pre-restore value and clobber what we just
+  // restored.
   useEffect(() => {
-    sessionStorage.setItem(LIST_TAB_KEY, tab)
-  }, [tab])
+    const saved = sessionStorage.getItem(LIST_TAB_KEY)
+    if (isTab(saved)) setTab(saved)
+  }, [])
+  function selectTab(next: Tab) {
+    setTab(next)
+    sessionStorage.setItem(LIST_TAB_KEY, next)
+  }
   useEffect(() => {
     if (loading || scrollRestoredRef.current) return
     scrollRestoredRef.current = true
@@ -564,7 +574,7 @@ function HomePageInner() {
 
       <div className="mb-6 flex gap-2 rounded-xl bg-slate-100 p-1 dark:bg-slate-900">
         <button
-          onClick={() => setTab('mine')}
+          onClick={() => selectTab('mine')}
           className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
             tab === 'mine'
               ? 'bg-white text-brand-700 shadow dark:bg-slate-800 dark:text-brand-300'
@@ -574,7 +584,7 @@ function HomePageInner() {
           การ์ดของฉัน ({cards.filter((c) => !c.is_wishlist && !c.is_sold).length})
         </button>
         <button
-          onClick={() => setTab('sold')}
+          onClick={() => selectTab('sold')}
           className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
             tab === 'sold'
               ? 'bg-white text-brand-700 shadow dark:bg-slate-800 dark:text-brand-300'
@@ -584,7 +594,7 @@ function HomePageInner() {
           ขายแล้ว ({cards.filter((c) => !c.is_wishlist && c.is_sold).length})
         </button>
         <button
-          onClick={() => setTab('wishlist')}
+          onClick={() => selectTab('wishlist')}
           className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
             tab === 'wishlist'
               ? 'bg-white text-brand-700 shadow dark:bg-slate-800 dark:text-brand-300'
