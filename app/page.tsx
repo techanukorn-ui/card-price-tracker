@@ -28,6 +28,11 @@ import Dashboard from '@/components/Dashboard'
 import ThemeToggle from '@/components/ThemeToggle'
 
 const LIST_SCROLL_KEY = 'card-tracker:list-scroll'
+const LIST_TAB_KEY = 'card-tracker:list-tab'
+
+function isTab(value: string | null): value is Tab {
+  return value === 'mine' || value === 'sold' || value === 'wishlist'
+}
 
 type Tab = 'mine' | 'sold' | 'wishlist'
 type MyCardRenderItem =
@@ -192,7 +197,11 @@ function HomePageInner() {
   const searchParams = useSearchParams()
   const readOnly = searchParams.get('readonly') === '1'
 
-  const [tab, setTab] = useState<Tab>('mine')
+  const [tab, setTab] = useState<Tab>(() => {
+    if (typeof window === 'undefined') return 'mine'
+    const saved = sessionStorage.getItem(LIST_TAB_KEY)
+    return isTab(saved) ? saved : 'mine'
+  })
   const [cards, setCards] = useState<Card[]>([])
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([])
   const [loading, setLoading] = useState(true)
@@ -272,6 +281,13 @@ function HomePageInner() {
     window.addEventListener('click', save, true)
     return () => window.removeEventListener('click', save, true)
   }, [])
+
+  // Remember which tab (mine/sold/wishlist) was active for the same reason —
+  // the list page fully remounts on the way back from a card's detail page,
+  // which would otherwise reset the tab to the 'mine' default.
+  useEffect(() => {
+    sessionStorage.setItem(LIST_TAB_KEY, tab)
+  }, [tab])
   useEffect(() => {
     if (loading || scrollRestoredRef.current) return
     scrollRestoredRef.current = true
