@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { CardWithLatestPrice, SEALED_BOX_ITEM_TYPE } from '@/lib/types'
+import { AlertBadgeStatus, CardWithLatestPrice, SEALED_BOX_ITEM_TYPE } from '@/lib/types'
 import { calcProfit, formatJPY, formatPct, formatRelative, formatSigned, formatTHB } from '@/lib/format'
 
 interface Props {
@@ -16,6 +16,7 @@ interface Props {
   onUpdatePriceMobile?: () => void
   linkHref?: string
   readOnly?: boolean
+  alertStatus?: AlertBadgeStatus
 }
 
 export default function CardTile({
@@ -30,6 +31,7 @@ export default function CardTile({
   onUpdatePriceMobile,
   linkHref,
   readOnly,
+  alertStatus,
 }: Props) {
   const image = card.custom_image_url || card.image_url
   const qty = card.quantity ?? 1
@@ -69,10 +71,24 @@ export default function CardTile({
       </div>
 
       <div className="mt-2.5 space-y-1">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-500 dark:text-brand-300">
-          {card.category}
-          {card.item_type === SEALED_BOX_ITEM_TYPE ? ` · ${SEALED_BOX_ITEM_TYPE}` : ''}
-        </p>
+        <div className="flex items-center justify-between gap-1">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-500 dark:text-brand-300">
+            {card.category}
+            {card.item_type === SEALED_BOX_ITEM_TYPE ? ` · ${SEALED_BOX_ITEM_TYPE}` : ''}
+          </p>
+          {alertStatus && (
+            <span
+              title={alertStatus === 'waiting' ? 'มีเป้าราคาที่กำลังรออยู่' : 'ถึงเป้าราคาแล้ว รอดูรายละเอียด'}
+              className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] leading-none ${
+                alertStatus === 'triggered'
+                  ? 'bg-emerald-100 dark:bg-emerald-500/20'
+                  : 'bg-slate-100 dark:bg-slate-800'
+              }`}
+            >
+              🔔
+            </span>
+          )}
+        </div>
         <p className="font-display line-clamp-2 min-h-[2.75em] text-[15px] font-medium leading-snug text-slate-900 dark:text-slate-100">{card.name}</p>
 
         {(mode === 'mine' || mode === 'sold') && (

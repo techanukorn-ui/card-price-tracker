@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { CATEGORY_OPTIONS, Card, CardWithLatestPrice, ITEM_TYPE_OPTIONS, PriceHistory, SEALED_BOX_ITEM_TYPE } from '@/lib/types'
+import { AlertBadgeStatus, CATEGORY_OPTIONS, Card, CardWithLatestPrice, ITEM_TYPE_OPTIONS, PriceHistory, SEALED_BOX_ITEM_TYPE } from '@/lib/types'
 import { calcProfit, formatPct, formatRelative, formatSigned, formatTHB } from '@/lib/format'
 import { ExchangeRateSetting, getFixedExchangeRate, getSiteBranding, SiteBranding } from '@/lib/appSettings'
 import {
@@ -36,6 +36,7 @@ function isTab(value: string | null): value is Tab {
 }
 
 type Tab = 'mine' | 'sold' | 'wishlist'
+type AlertSummaryRow = { id: string; card_id: string; is_active: boolean; triggered_at: string | null }
 type MyCardRenderItem =
   | { type: 'single'; card: CardWithLatestPrice }
   | { type: 'set'; setId: string; cards: CardWithLatestPrice[] }
@@ -201,6 +202,7 @@ function HomePageInner() {
   const [tab, setTab] = useState<Tab>('mine')
   const [cards, setCards] = useState<Card[]>([])
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([])
+  const [priceAlerts, setPriceAlerts] = useState<AlertSummaryRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -251,14 +253,16 @@ function HomePageInner() {
 
   const loadData = useCallback(async () => {
     setError(null)
-    const [{ data: cardsData, error: cardsErr }, { data: priceData, error: priceErr }] = await Promise.all([
+    const [{ data: cardsData, error: cardsErr }, { data: priceData, error: priceErr }, { data: alertsData }] = await Promise.all([
       supabase.from('cards').select('*').order('created_at', { ascending: false }),
       supabase.from('price_history').select('*').order('fetched_at', { ascending: false }),
+      supabase.from('price_alerts').select('id, card_id, is_active, triggered_at'),
     ])
     if (cardsErr) setError(cardsErr.message)
     else if (priceErr) setError(priceErr.message)
     setCards(cardsData || [])
     setPriceHistory(priceData || [])
+    setPriceAlerts(alertsData || [])
     setLoading(false)
   }, [])
 
@@ -319,6 +323,23 @@ function HomePageInner() {
 
   const withLatest = (list: Card[]): CardWithLatestPrice[] =>
     list.map((c) => ({ ...c, latestPrice: latestPriceByCard.get(c.id) || null }))
+
+  // One 🔔 badge per card in the list view (see CardTile) — 'waiting' wins
+  // over 'triggered' when a card has both an unfired and an already-fired
+  // active alert, so the badge always reflects "there's still something to
+  // watch for" when that's true.
+  const alertStatusByCard = useMemo(() => {
+    const map = new Map<string, AlertBadgeStatus>()
+    for (const a of priceAlerts) {
+      if (!a.is_active) continue
+      if (!a.triggered_at) {
+        map.set(a.card_id, 'waiting')
+      } else if (!map.has(a.card_id)) {
+        map.set(a.card_id, 'triggered')
+      }
+    }
+    return map
+  }, [priceAlerts])
 
   const myCards = useMemo(
     () => withLatest(cards.filter((c) => !c.is_wishlist && !c.is_sold)),
@@ -763,6 +784,7 @@ function HomePageInner() {
                           onUpdatePriceMobile={() => handleUpdatePricesMobile([c])}
                           linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
                           readOnly={readOnly}
+                          alertStatus={alertStatusByCard.get(c.id)}
                         />
                       ))}
                     </div>
@@ -779,6 +801,7 @@ function HomePageInner() {
                     onUpdatePriceMobile={() => handleUpdatePricesMobile([item.card])}
                     linkHref={readOnly ? `/card/${item.card.id}?readonly=1` : `/card/${item.card.id}`}
                     readOnly={readOnly}
+                    alertStatus={alertStatusByCard.get(item.card.id)}
                   />
                 )
               )}
@@ -840,6 +863,7 @@ function HomePageInner() {
                           onUnsell={() => handleUnsell(c)}
                           linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
                           readOnly={readOnly}
+                          alertStatus={alertStatusByCard.get(c.id)}
                         />
                       ))}
                     </div>
@@ -854,6 +878,7 @@ function HomePageInner() {
                     onUnsell={() => handleUnsell(item.card)}
                     linkHref={readOnly ? `/card/${item.card.id}?readonly=1` : `/card/${item.card.id}`}
                     readOnly={readOnly}
+                    alertStatus={alertStatusByCard.get(item.card.id)}
                   />
                 )
               )}
@@ -906,6 +931,7 @@ function HomePageInner() {
                   onUpdatePriceMobile={() => handleUpdatePricesMobile([c])}
                   linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
                   readOnly={readOnly}
+                  alertStatus={alertStatusByCard.get(c.id)}
                 />
               ))}
             </div>
