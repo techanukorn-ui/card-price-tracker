@@ -27,8 +27,13 @@ export async function checkAndNotifyPriceAlerts(cardId: string, marketPriceJpy: 
     )
     if (hits.length === 0) return
 
-    const { data: card } = await supabaseAdmin.from('cards').select('id, name, grade, is_wishlist').eq('id', cardId).maybeSingle()
+    const { data: card } = await supabaseAdmin
+      .from('cards')
+      .select('id, name, grade, is_wishlist, image_url, custom_image_url')
+      .eq('id', cardId)
+      .maybeSingle()
     if (!card) return
+    const photoUrl = card.custom_image_url || card.image_url || null
 
     const { data: settings } = await supabaseAdmin
       .from('app_settings')
@@ -51,7 +56,12 @@ export async function checkAndNotifyPriceAlerts(cardId: string, marketPriceJpy: 
       if (alert.note) lines.push(`หมายเหตุ: ${escapeHtml(alert.note)}`)
       lines.push(`${siteOrigin}/card/${card.id}`)
 
-      await sendTelegramMessage(settings.telegram_bot_token, settings.telegram_chat_id, lines.join('\n'))
+      const text = lines.join('\n')
+      if (photoUrl) {
+        await sendTelegramPhoto(settings.telegram_bot_token, settings.telegram_chat_id, photoUrl, text)
+      } else {
+        await sendTelegramMessage(settings.telegram_bot_token, settings.telegram_chat_id, text)
+      }
     }
   } catch (err) {
     console.error('checkAndNotifyPriceAlerts failed', err)
@@ -71,5 +81,24 @@ async function sendTelegramMessage(botToken: string, chatId: string, text: strin
   if (!res.ok) {
     const body = await res.text().catch(() => '')
     console.error('Telegram sendMessage failed', res.status, body)
+  }
+}
+
+// Telegram fetches the photo from this URL itself, so it only works with a
+// publicly reachable image (SNKRDUNK's CDN image_url, or a Supabase Storage
+// custom_image_url — both public). Caption has the same 1024-char cap
+// Telegram applies to captions, which our short message never approaches.
+// Falls back to a plain text message if the photo send fails for any reason
+// (e.g. Telegram couldn't fetch that URL) so the alert still gets through.
+async function sendTelegramPhoto(botToken: string, chatId: string, photoUrl: string, caption: string): Promise<void> {
+  const res = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, photo: photoUrl, caption, parse_mode: 'HTML' }),
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    console.error('Telegram sendPhoto failed, falling back to text', res.status, body)
+    await sendTelegramMessage(botToken, chatId, caption)
   }
 }
