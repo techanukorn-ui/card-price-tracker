@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { checkAndNotifyPriceAlerts } from '@/lib/priceAlerts'
+import { checkAndNotifyPortfolioAlerts } from '@/lib/portfolioAlerts'
 
 // POST /api/update-price-mobile
 // Body: { card_id: string, market_price_jpy: number, exchange_rate: number, market_price_thb?: number }
@@ -88,6 +89,7 @@ export async function POST(req: NextRequest) {
   }
 
   await checkAndNotifyPriceAlerts(card_id, market_price_jpy, req.nextUrl.origin)
+  await checkAndNotifyPortfolioAlerts(req.nextUrl.origin)
 
   return NextResponse.json({ success: true, data }, { headers: CORS_HEADERS })
 }

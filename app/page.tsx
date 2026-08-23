@@ -20,6 +20,7 @@ import PriceUpdateBar from '@/components/PriceUpdateBar'
 import MobilePriceUpdateBar from '@/components/MobilePriceUpdateBar'
 import ExchangeRateSettingsModal from '@/components/ExchangeRateSettingsModal'
 import TelegramSettingsModal from '@/components/TelegramSettingsModal'
+import PortfolioAlertsModal from '@/components/PortfolioAlertsModal'
 import BrandingSettingsModal from '@/components/BrandingSettingsModal'
 import CardFormModal from '@/components/CardFormModal'
 import MoveToCollectionModal from '@/components/MoveToCollectionModal'
@@ -241,6 +242,7 @@ function HomePageInner() {
   }, [loadExchangeRateInfo])
 
   const [telegramSettingsOpen, setTelegramSettingsOpen] = useState(false)
+  const [portfolioAlertsOpen, setPortfolioAlertsOpen] = useState(false)
 
   const [brandingSettingsOpen, setBrandingSettingsOpen] = useState(false)
   const [branding, setBranding] = useState<SiteBranding | null>(null)
@@ -609,6 +611,14 @@ function HomePageInner() {
                 🔔 แจ้งเตือนราคา
               </button>
             )}
+            {!readOnly && (
+              <button
+                onClick={() => setPortfolioAlertsOpen(true)}
+                className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+              >
+                🎯 เป้าพอร์ตรวม
+              </button>
+            )}
           </div>
           <ThemeToggle />
         </div>
@@ -958,6 +968,7 @@ function HomePageInner() {
       {!readOnly && telegramSettingsOpen && (
         <TelegramSettingsModal onClose={() => setTelegramSettingsOpen(false)} onSaved={() => {}} />
       )}
+      {!readOnly && portfolioAlertsOpen && <PortfolioAlertsModal onClose={() => setPortfolioAlertsOpen(false)} />}
 
       {!readOnly && brandingSettingsOpen && (
         <BrandingSettingsModal onClose={() => setBrandingSettingsOpen(false)} onSaved={loadBranding} />

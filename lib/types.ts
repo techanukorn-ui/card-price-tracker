@@ -72,3 +72,18 @@ export interface PriceAlert {
   created_at: string
   updated_at: string
 }
+
+// Global (not per-card) target on total portfolio market value — "การ์ดของฉัน"
+// scope only, same as Dashboard/buildWeeklyDigest('mine'). Checked after
+// every price update (lib/portfolioAlerts.ts), same trigger-once-then-arm
+// behavior as PriceAlert.
+export interface PortfolioAlert {
+  id: string
+  target_value_thb: number
+  direction: PriceAlertDirection
+  note: string | null
+  is_active: boolean
+  triggered_at: string | null
+  created_at: string
+  updated_at: string
+}

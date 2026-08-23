@@ -114,6 +114,27 @@ drop policy if exists "price_alerts_allow_all" on public.price_alerts;
 create policy "price_alerts_allow_all" on public.price_alerts for all
   using (true) with check (true);
 
+-- ============ portfolio_alerts ============
+-- Global (not per-card) target on total portfolio market value —
+-- "การ์ดของฉัน" scope only (matches Dashboard/buildWeeklyDigest('mine')),
+-- checked after every price update (lib/portfolioAlerts.ts). Same
+-- once-then-arm behavior as price_alerts above.
+create table if not exists public.portfolio_alerts (
+  id uuid primary key default gen_random_uuid(),
+  target_value_thb numeric not null,
+  direction text not null check (direction in ('above', 'below')),
+  note text,
+  is_active boolean not null default true,
+  triggered_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.portfolio_alerts enable row level security;
+drop policy if exists "portfolio_alerts_allow_all" on public.portfolio_alerts;
+create policy "portfolio_alerts_allow_all" on public.portfolio_alerts for all
+  using (true) with check (true);
+
 -- ============ app_settings: telegram notification settings ============
 -- app_settings itself was created manually by the user (see lib/appSettings.ts
 -- for the jpy_thb_rate / site_title columns added the same way) — these two
