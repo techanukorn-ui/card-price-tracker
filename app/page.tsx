@@ -14,6 +14,7 @@ import {
 } from '@/lib/priceUpdateBridge'
 import { buildMobileBatchStartUrl, fetchExchangeRate, loadMobileJob, MobileBatchJob, saveMobileJob } from '@/lib/mobilePriceUpdate'
 import { useRefetchOnResume } from '@/lib/useRefetchOnResume'
+import { fetchAllRows } from '@/lib/fetchAll'
 import CardTile from '@/components/CardTile'
 import PriceUpdateBar from '@/components/PriceUpdateBar'
 import MobilePriceUpdateBar from '@/components/MobilePriceUpdateBar'
@@ -253,17 +254,21 @@ function HomePageInner() {
 
   const loadData = useCallback(async () => {
     setError(null)
-    const [{ data: cardsData, error: cardsErr }, { data: priceData, error: priceErr }, { data: alertsData }] = await Promise.all([
-      supabase.from('cards').select('*').order('created_at', { ascending: false }),
-      supabase.from('price_history').select('*').order('fetched_at', { ascending: false }),
-      supabase.from('price_alerts').select('id, card_id, is_active, triggered_at'),
-    ])
-    if (cardsErr) setError(cardsErr.message)
-    else if (priceErr) setError(priceErr.message)
-    setCards(cardsData || [])
-    setPriceHistory(priceData || [])
-    setPriceAlerts(alertsData || [])
-    setLoading(false)
+    try {
+      const [{ data: cardsData, error: cardsErr }, priceData, { data: alertsData }] = await Promise.all([
+        supabase.from('cards').select('*').order('created_at', { ascending: false }),
+        fetchAllRows<PriceHistory>(supabase, 'price_history', '*'),
+        supabase.from('price_alerts').select('id, card_id, is_active, triggered_at'),
+      ])
+      if (cardsErr) setError(cardsErr.message)
+      setCards(cardsData || [])
+      setPriceHistory(priceData)
+      setPriceAlerts(alertsData || [])
+    } catch (e: any) {
+      setError(e?.message || 'โหลดข้อมูลไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -314,9 +319,14 @@ function HomePageInner() {
 
   const latestPriceByCard = useMemo(() => {
     const map = new Map<string, PriceHistory>()
-    // priceHistory is sorted fetched_at desc, so first occurrence per card is the latest.
+    // priceHistory comes from fetchAllRows paged by id, not fetched_at, so
+    // pick the latest per card by comparing timestamps rather than relying
+    // on array order.
     for (const p of priceHistory) {
-      if (!map.has(p.card_id)) map.set(p.card_id, p)
+      const current = map.get(p.card_id)
+      if (!current || new Date(p.fetched_at).getTime() > new Date(current.fetched_at).getTime()) {
+        map.set(p.card_id, p)
+      }
     }
     return map
   }, [priceHistory])

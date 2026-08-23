@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { buildWeeklyDigest } from '@/lib/weeklyDigest'
 import { escapeHtml, sendTelegramMessage } from '@/lib/telegram'
 import { formatPct, formatSigned, formatTHB } from '@/lib/format'
+import { fetchAllRows } from '@/lib/fetchAll'
+import { PriceHistory } from '@/lib/types'
 
 // GET /api/cron/weekly-digest — triggered by the Vercel Cron schedule in
 // vercel.json (see there for the day/time). Sends a portfolio summary +
@@ -19,25 +21,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
   }
 
-  const [{ data: cards, error: cardsErr }, { data: priceHistory, error: priceErr }, { data: settings }] = await Promise.all([
-    supabaseAdmin.from('cards').select('*'),
-    // Supabase caps an unordered select at 1000 rows — ordering newest-first
-    // matters here because price_history is already past that count, so an
-    // unordered fetch can silently drop a card's true latest snapshot and
-    // report a stale price for it instead. See app/page.tsx's identical
-    // ordering for the same reason.
-    supabaseAdmin.from('price_history').select('*').order('fetched_at', { ascending: false }),
-    supabaseAdmin.from('app_settings').select('telegram_bot_token, telegram_chat_id').eq('id', 1).maybeSingle(),
-  ])
-
-  if (cardsErr || priceErr) {
-    return NextResponse.json({ success: false, error: cardsErr?.message || priceErr?.message }, { status: 500 })
+  let cardsResult, priceHistory, settingsResult
+  try {
+    ;[cardsResult, priceHistory, settingsResult] = await Promise.all([
+      supabaseAdmin.from('cards').select('*'),
+      fetchAllRows<PriceHistory>(supabaseAdmin, 'price_history', '*'),
+      supabaseAdmin.from('app_settings').select('telegram_bot_token, telegram_chat_id').eq('id', 1).maybeSingle(),
+    ])
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e?.message || 'โหลดข้อมูลไม่สำเร็จ' }, { status: 500 })
   }
+  if (cardsResult.error) {
+    return NextResponse.json({ success: false, error: cardsResult.error.message }, { status: 500 })
+  }
+  const settings = settingsResult.data
   if (!settings?.telegram_bot_token || !settings?.telegram_chat_id) {
     return NextResponse.json({ success: false, error: 'ยังไม่ได้ตั้งค่า Telegram' }, { status: 200 })
   }
 
-  const digest = buildWeeklyDigest(cards || [], priceHistory || [])
+  const digest = buildWeeklyDigest(cardsResult.data || [], priceHistory)
   const text = formatDigestMessage(digest, req.nextUrl.origin)
 
   await sendTelegramMessage(settings.telegram_bot_token, settings.telegram_chat_id, text)
