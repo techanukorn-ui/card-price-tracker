@@ -39,15 +39,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'ยังไม่ได้ตั้งค่า Telegram' }, { status: 200 })
   }
 
-  const digest = buildWeeklyDigest(cardsResult.data || [], priceHistory)
-  const text = formatDigestMessage(digest, settings.jpy_thb_rate ?? null, req.nextUrl.origin)
+  const cards = cardsResult.data || []
+  const mineDigest = buildWeeklyDigest(cards, priceHistory, 'mine')
+  const wishlistDigest = buildWeeklyDigest(cards, priceHistory, 'wishlist')
+  const text = formatDigestMessage(mineDigest, wishlistDigest, settings.jpy_thb_rate ?? null, req.nextUrl.origin)
 
   await sendTelegramMessage(settings.telegram_bot_token, settings.telegram_chat_id, text)
 
-  return NextResponse.json({ success: true, digest })
+  return NextResponse.json({ success: true, mineDigest, wishlistDigest })
 }
 
-function formatDigestMessage(digest: ReturnType<typeof buildWeeklyDigest>, jpyThbRate: number | null, siteOrigin: string): string {
+function formatDigestMessage(
+  mine: ReturnType<typeof buildWeeklyDigest>,
+  wishlist: ReturnType<typeof buildWeeklyDigest>,
+  jpyThbRate: number | null,
+  siteOrigin: string
+): string {
   const lines = ['📊 <b>สรุปพอร์ตประจำสัปดาห์</b>']
 
   if (jpyThbRate !== null) {
@@ -55,23 +62,41 @@ function formatDigestMessage(digest: ReturnType<typeof buildWeeklyDigest>, jpyTh
   }
 
   lines.push(
-    `มูลค่าตลาดรวม: ${formatTHB(digest.totalValue)} (มีราคาแล้ว ${digest.pricedCardCount}/${digest.cardCount} ใบ)`,
-    `ต้นทุนรวม: ${formatTHB(digest.totalCost)}`
+    '',
+    '🗂 <b>การ์ดของฉัน</b>',
+    `มูลค่าตลาดรวม: ${formatTHB(mine.totalValue)} (มีราคาแล้ว ${mine.pricedCardCount}/${mine.cardCount} ใบ)`,
+    `ต้นทุนรวม: ${formatTHB(mine.totalCost)}`
   )
 
-  if (digest.profit !== null && digest.marginPct !== null) {
-    lines.push(`กำไร/ขาดทุนรวม: ${formatSigned(digest.profit, formatTHB)} (${formatPct(digest.marginPct)})`)
+  if (mine.profit !== null && mine.marginPct !== null) {
+    lines.push(`กำไร/ขาดทุนรวม: ${formatSigned(mine.profit, formatTHB)} (${formatPct(mine.marginPct)})`)
   }
 
+  appendMovers(lines, mine, 'ขึ้นแรงสุดรอบสัปดาห์', 'ลงแรงสุดรอบสัปดาห์')
+
+  if (wishlist.cardCount > 0) {
+    lines.push(
+      '',
+      '⭐ <b>Wishlist</b>',
+      `มูลค่าตลาดรวม: ${formatTHB(wishlist.totalValue)} (มีราคาแล้ว ${wishlist.pricedCardCount}/${wishlist.cardCount} ใบ)`
+    )
+    appendMovers(lines, wishlist, 'ขึ้นแรงสุดรอบสัปดาห์ (Wishlist)', 'ลงแรงสุดรอบสัปดาห์ (Wishlist)')
+  }
+
+  lines.push('', siteOrigin)
+  return lines.join('\n')
+}
+
+function appendMovers(lines: string[], digest: ReturnType<typeof buildWeeklyDigest>, gainersLabel: string, losersLabel: string) {
   if (digest.gainers.length > 0) {
-    lines.push('', '📈 <b>ขึ้นแรงสุดรอบสัปดาห์</b>')
+    lines.push('', `📈 <b>${gainersLabel}</b>`)
     digest.gainers.forEach((m, i) => {
       lines.push(`${i + 1}. ${escapeHtml(m.name)} ${formatSigned(m.changeThb, formatTHB)} (${formatPct(m.changePct)})`)
     })
   }
 
   if (digest.losers.length > 0) {
-    lines.push('', '📉 <b>ลงแรงสุดรอบสัปดาห์</b>')
+    lines.push('', `📉 <b>${losersLabel}</b>`)
     digest.losers.forEach((m, i) => {
       lines.push(`${i + 1}. ${escapeHtml(m.name)} ${formatSigned(m.changeThb, formatTHB)} (${formatPct(m.changePct)})`)
     })
@@ -80,7 +105,4 @@ function formatDigestMessage(digest: ReturnType<typeof buildWeeklyDigest>, jpyTh
   if (digest.gainers.length === 0 && digest.losers.length === 0) {
     lines.push('', 'ยังไม่มีข้อมูลราคาย้อนหลัง 7 วันพอเทียบ — ต้องกดอัปเดตราคาซ้ำในช่วงนี้ก่อนถึงจะเห็นการเปลี่ยนแปลงรายสัปดาห์')
   }
-
-  lines.push('', siteOrigin)
-  return lines.join('\n')
 }

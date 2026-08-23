@@ -20,18 +20,30 @@ export interface WeeklyDigestData {
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
+export type WeeklyDigestScope = 'mine' | 'wishlist'
+
 // Pure, framework-agnostic — used by app/api/cron/weekly-digest so the
-// digest math is testable independent of Supabase/Telegram. Only considers
-// owned cards (not wishlist, not sold), matching Dashboard's "การ์ดของฉัน"
-// scope. gainers/losers only include cards that have a price_history
-// snapshot from ~7 days ago to compare against — a card that hasn't had two
-// separate price pulls at least a week apart just doesn't have a "this
-// week" change yet, so it's silently left out rather than guessed at.
-export function buildWeeklyDigest(cards: Card[], priceHistory: PriceHistory[], now: Date = new Date()): WeeklyDigestData {
-  const myCards = cards.filter((c) => !c.is_wishlist && !c.is_sold)
+// digest math is testable independent of Supabase/Telegram. gainers/losers
+// only include cards that have a price_history snapshot from ~7 days ago to
+// compare against — a card that hasn't had two separate price pulls at
+// least a week apart just doesn't have a "this week" change yet, so it's
+// silently left out rather than guessed at.
+//
+// 'mine' scope matches Dashboard's owned-cards scope (not wishlist, not
+// sold) and includes cost/profit. 'wishlist' cards never have a cost_thb
+// (schema: null for wishlist rows) so profit/margin are meaningless there —
+// profit/marginPct come back null unconditionally for that scope, and
+// totalCost stays 0.
+export function buildWeeklyDigest(
+  cards: Card[],
+  priceHistory: PriceHistory[],
+  scope: WeeklyDigestScope,
+  now: Date = new Date()
+): WeeklyDigestData {
+  const scopedCards = cards.filter((c) => (scope === 'wishlist' ? c.is_wishlist : !c.is_wishlist && !c.is_sold))
 
   const byCard = new Map<string, PriceHistory[]>()
-  for (const c of myCards) byCard.set(c.id, [])
+  for (const c of scopedCards) byCard.set(c.id, [])
   for (const p of priceHistory) {
     byCard.get(p.card_id)?.push(p)
   }
@@ -46,9 +58,9 @@ export function buildWeeklyDigest(cards: Card[], priceHistory: PriceHistory[], n
   let pricedCardCount = 0
   const movers: WeeklyMover[] = []
 
-  for (const c of myCards) {
+  for (const c of scopedCards) {
     const qty = c.quantity ?? 1
-    totalCost += c.cost_thb ?? 0
+    if (scope === 'mine') totalCost += c.cost_thb ?? 0
 
     const history = byCard.get(c.id) || []
     const latest = history[0] || null
@@ -67,10 +79,10 @@ export function buildWeeklyDigest(cards: Card[], priceHistory: PriceHistory[], n
     }
   }
 
-  const profitInfo = pricedCardCount > 0 ? calcProfit(totalCost, totalValue) : null
+  const profitInfo = scope === 'mine' && pricedCardCount > 0 ? calcProfit(totalCost, totalValue) : null
 
   return {
-    cardCount: myCards.length,
+    cardCount: scopedCards.length,
     pricedCardCount,
     totalCost,
     totalValue,
