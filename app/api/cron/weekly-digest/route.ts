@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     ;[cardsResult, priceHistory, settingsResult] = await Promise.all([
       supabaseAdmin.from('cards').select('*'),
       fetchAllRows<PriceHistory>(supabaseAdmin, 'price_history', '*'),
-      supabaseAdmin.from('app_settings').select('telegram_bot_token, telegram_chat_id').eq('id', 1).maybeSingle(),
+      supabaseAdmin.from('app_settings').select('telegram_bot_token, telegram_chat_id, jpy_thb_rate').eq('id', 1).maybeSingle(),
     ])
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e?.message || 'โหลดข้อมูลไม่สำเร็จ' }, { status: 500 })
@@ -40,19 +40,24 @@ export async function GET(req: NextRequest) {
   }
 
   const digest = buildWeeklyDigest(cardsResult.data || [], priceHistory)
-  const text = formatDigestMessage(digest, req.nextUrl.origin)
+  const text = formatDigestMessage(digest, settings.jpy_thb_rate ?? null, req.nextUrl.origin)
 
   await sendTelegramMessage(settings.telegram_bot_token, settings.telegram_chat_id, text)
 
   return NextResponse.json({ success: true, digest })
 }
 
-function formatDigestMessage(digest: ReturnType<typeof buildWeeklyDigest>, siteOrigin: string): string {
-  const lines = [
-    '📊 <b>สรุปพอร์ตประจำสัปดาห์</b>',
+function formatDigestMessage(digest: ReturnType<typeof buildWeeklyDigest>, jpyThbRate: number | null, siteOrigin: string): string {
+  const lines = ['📊 <b>สรุปพอร์ตประจำสัปดาห์</b>']
+
+  if (jpyThbRate !== null) {
+    lines.push(`เรทค่าเงินที่ใช้อยู่: 1 เยน = ${jpyThbRate} บาท`)
+  }
+
+  lines.push(
     `มูลค่าตลาดรวม: ${formatTHB(digest.totalValue)} (มีราคาแล้ว ${digest.pricedCardCount}/${digest.cardCount} ใบ)`,
-    `ต้นทุนรวม: ${formatTHB(digest.totalCost)}`,
-  ]
+    `ต้นทุนรวม: ${formatTHB(digest.totalCost)}`
+  )
 
   if (digest.profit !== null && digest.marginPct !== null) {
     lines.push(`กำไร/ขาดทุนรวม: ${formatSigned(digest.profit, formatTHB)} (${formatPct(digest.marginPct)})`)
