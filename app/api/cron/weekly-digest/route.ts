@@ -21,7 +21,12 @@ export async function GET(req: NextRequest) {
 
   const [{ data: cards, error: cardsErr }, { data: priceHistory, error: priceErr }, { data: settings }] = await Promise.all([
     supabaseAdmin.from('cards').select('*'),
-    supabaseAdmin.from('price_history').select('*'),
+    // Supabase caps an unordered select at 1000 rows — ordering newest-first
+    // matters here because price_history is already past that count, so an
+    // unordered fetch can silently drop a card's true latest snapshot and
+    // report a stale price for it instead. See app/page.tsx's identical
+    // ordering for the same reason.
+    supabaseAdmin.from('price_history').select('*').order('fetched_at', { ascending: false }),
     supabaseAdmin.from('app_settings').select('telegram_bot_token, telegram_chat_id').eq('id', 1).maybeSingle(),
   ])
 
