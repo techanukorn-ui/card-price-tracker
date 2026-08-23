@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { checkAndNotifyPriceAlerts } from '@/lib/priceAlerts'
 
 // POST /api/update-price
 // Body: { card_id: string, market_price_jpy: number, exchange_rate: number, market_price_thb?: number, image_url?: string }
@@ -66,6 +67,8 @@ export async function POST(req: NextRequest) {
   if (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
+
+  await checkAndNotifyPriceAlerts(card_id, market_price_jpy, req.nextUrl.origin)
 
   return NextResponse.json({ success: true, data })
 }

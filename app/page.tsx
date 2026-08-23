@@ -18,6 +18,7 @@ import CardTile from '@/components/CardTile'
 import PriceUpdateBar from '@/components/PriceUpdateBar'
 import MobilePriceUpdateBar from '@/components/MobilePriceUpdateBar'
 import ExchangeRateSettingsModal from '@/components/ExchangeRateSettingsModal'
+import TelegramSettingsModal from '@/components/TelegramSettingsModal'
 import BrandingSettingsModal from '@/components/BrandingSettingsModal'
 import CardFormModal from '@/components/CardFormModal'
 import MoveToCollectionModal from '@/components/MoveToCollectionModal'
@@ -235,6 +236,8 @@ function HomePageInner() {
   useEffect(() => {
     loadExchangeRateInfo()
   }, [loadExchangeRateInfo])
+
+  const [telegramSettingsOpen, setTelegramSettingsOpen] = useState(false)
 
   const [brandingSettingsOpen, setBrandingSettingsOpen] = useState(false)
   const [branding, setBranding] = useState<SiteBranding | null>(null)
@@ -565,6 +568,14 @@ function HomePageInner() {
                 {exchangeRateInfo
                   ? `เรท ${exchangeRateInfo.rate} · ${formatRelative(exchangeRateInfo.updatedAt)}`
                   : 'ตั้งเรทค่าเงิน'}
+              </button>
+            )}
+            {!readOnly && (
+              <button
+                onClick={() => setTelegramSettingsOpen(true)}
+                className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+              >
+                🔔 แจ้งเตือนราคา
               </button>
             )}
           </div>
@@ -907,6 +918,9 @@ function HomePageInner() {
 
       {!readOnly && rateSettingsOpen && (
         <ExchangeRateSettingsModal onClose={() => setRateSettingsOpen(false)} onSaved={loadExchangeRateInfo} />
+      )}
+      {!readOnly && telegramSettingsOpen && (
+        <TelegramSettingsModal onClose={() => setTelegramSettingsOpen(false)} onSaved={() => {}} />
       )}
 
       {!readOnly && brandingSettingsOpen && (

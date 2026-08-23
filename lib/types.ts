@@ -53,3 +53,17 @@ export interface PriceHistory {
 export interface CardWithLatestPrice extends Card {
   latestPrice: PriceHistory | null
 }
+
+export type PriceAlertDirection = 'above' | 'below'
+
+export interface PriceAlert {
+  id: string
+  card_id: string
+  target_price_jpy: number
+  direction: PriceAlertDirection
+  note: string | null
+  is_active: boolean
+  triggered_at: string | null
+  created_at: string
+  updated_at: string
+}

@@ -15,6 +15,7 @@ import {
 import { buildMobileBatchStartUrl, fetchExchangeRate, loadMobileJob, MobileBatchJob, saveMobileJob } from '@/lib/mobilePriceUpdate'
 import { useRefetchOnResume } from '@/lib/useRefetchOnResume'
 import CardPriceChart from '@/components/CardPriceChart'
+import PriceAlertsPanel from '@/components/PriceAlertsPanel'
 import CardFormModal from '@/components/CardFormModal'
 import PriceUpdateBar from '@/components/PriceUpdateBar'
 import MobilePriceUpdateBar from '@/components/MobilePriceUpdateBar'
@@ -272,6 +273,8 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
           </>
         )}
       </div>
+
+      <PriceAlertsPanel cardId={card.id} isWishlist={card.is_wishlist} readOnly={readOnly} />
 
       <h2 className="font-display mb-2 mt-6 text-base font-medium text-slate-800 dark:text-slate-200">ราคาย้อนหลัง</h2>
       <CardPriceChart history={history} />
