@@ -60,7 +60,17 @@ export default function PriceUpdateBar({ onDone }: Props) {
 
     function onDoneEvt(e: Event) {
       const detail = (e as CustomEvent<PriceUpdateDone>).detail
-      setJob((prev) => (prev && prev.jobId === detail.jobId ? { ...prev, finished: true } : prev))
+      // CPT_DONE's successCount/failures come straight from background.js's
+      // own synchronous counters, so they're authoritative — individual
+      // CPT_CARD_RESULT messages relayed via chrome.tabs.sendMessage can be
+      // silently dropped in transit (no error, just never arrives), which
+      // would otherwise leave the accumulated total under-counting even
+      // though every card actually succeeded on the backend.
+      setJob((prev) =>
+        prev && prev.jobId === detail.jobId
+          ? { ...prev, successCount: detail.successCount, failures: detail.failures, finished: true }
+          : prev
+      )
       onDone?.()
       if (hideTimer.current) clearTimeout(hideTimer.current)
       hideTimer.current = setTimeout(() => setJob(null), 6000)
