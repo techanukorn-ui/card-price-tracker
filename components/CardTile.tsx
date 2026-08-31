@@ -109,6 +109,11 @@ export default function CardTile({
             <p className="text-[11px] text-slate-400 dark:text-slate-500">
               อัปเดตล่าสุดเมื่อ {formatRelative(card.latestPrice.fetched_at)}
             </p>
+            {card.lowest_listing_price_jpy != null && (
+              <p className="num text-[11px] text-slate-400 dark:text-slate-500">
+                ตั้งขายต่ำสุดตอนนี้ {formatJPY(card.lowest_listing_price_jpy)}
+              </p>
+            )}
           </>
         ) : (
           <p className="text-sm font-semibold text-slate-400 dark:text-slate-500">ยังไม่มีราคา</p>

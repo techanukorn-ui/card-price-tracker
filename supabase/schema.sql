@@ -56,6 +56,13 @@ alter table public.cards add column if not exists sold_from_card_id uuid referen
 -- sealed box can belong to any category (e.g. a Pokémon sealed box).
 alter table public.cards add column if not exists item_type text not null default 'การ์ด';
 
+-- lowest_listing_price_jpy: current cheapest active listing (出品中最安値) on
+-- SNKRDUNK for the card's own grade/condition, refreshed alongside the sold-
+-- price average. This is a live snapshot (overwritten each refresh), unlike
+-- price_history which is an append-only log of actual sale prices.
+alter table public.cards add column if not exists lowest_listing_price_jpy numeric;
+alter table public.cards add column if not exists lowest_listing_price_fetched_at timestamptz;
+
 -- ============ price_history ============
 -- one row per price snapshot. never updated/overwritten, only inserted.
 create table if not exists public.price_history (

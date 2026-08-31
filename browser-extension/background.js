@@ -83,6 +83,23 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedB
     return Array.from(document.querySelectorAll('button')).find((b) => b.textContent.trim() === label) || null
   }
 
+  function escapeRegex(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  }
+
+  // SNKRDUNK renders TWO different button sets with overlapping labels: a
+  // price grid near the top (one chip per grade/condition, its own label
+  // text immediately followed by either a price like "¥2,290,000~" or
+  // "出品待ち" when nothing is listed) and a separate plain-text filter row
+  // further down (just "PSA10" etc, used to filter the 売買履歴 sold-history
+  // table — that's what findButton() above matches). Conflating the two
+  // was the original bug: reading price off the plain filter button always
+  // returned null. This matches the price-grid chip specifically.
+  function findPriceGridButton(label) {
+    const re = new RegExp('^' + escapeRegex(label) + '(¥|出品待ち)')
+    return Array.from(document.querySelectorAll('button')).find((b) => re.test(b.textContent.trim())) || null
+  }
+
   // The card's own product photo on SNKRDUNK — CDN URL pattern
   // https://cdn.snkrdunk.com/upload_bg_removed/....webp?size=l. There's
   // normally exactly one such image on the page; it's distinct from the
@@ -90,6 +107,12 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedB
   function findMainImage() {
     const img = Array.from(document.querySelectorAll('img')).find((el) => (el.src || '').includes('size=l'))
     return img ? img.src : null
+  }
+
+  function readListingPriceFromButton(btn) {
+    if (!btn) return null
+    const m = (btn.textContent || '').match(/¥\s?([\d,]+)/)
+    return m ? Number(m[1].replace(/,/g, '')) : null
   }
 
   function sleep(ms) {
@@ -118,21 +141,22 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedB
 
     const isSealed = itemType === sealedBoxItemType
     let targetVariant
+    let variantBtn
 
     if (isSealed) {
       targetVariant = sealedBoxLabel
-      const btn = findButton(targetVariant)
-      if (btn) btn.click() // best-effort; box pages don't always need it
+      variantBtn = findButton(targetVariant)
+      if (variantBtn) variantBtn.click() // best-effort; box pages don't always need it
     } else {
       targetVariant = grade === 'Raw' ? rawCondition : grade
       if (!targetVariant) {
         return { ok: false, error: 'การ์ดใบนี้ไม่มีเกรด/สภาพ (raw_condition) ให้กรอง' }
       }
-      const btn = await pollUntil(() => findButton(targetVariant), 5000)
-      if (!btn) {
+      variantBtn = await pollUntil(() => findButton(targetVariant), 5000)
+      if (!variantBtn) {
         return { ok: false, error: `ไม่พบปุ่มกรองเกรด "${targetVariant}" บนหน้า SNKRDUNK` }
       }
-      btn.click()
+      variantBtn.click()
     }
 
     // After clicking, wait for the table to actually reflect the filter
@@ -162,6 +186,7 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedB
     const avg = used.reduce((sum, r) => sum + r.price, 0) / used.length
 
     const image_url = hasImage ? null : findMainImage()
+    const lowest_listing_price_jpy = readListingPriceFromButton(findPriceGridButton(targetVariant))
 
     return {
       ok: true,
@@ -169,6 +194,7 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedB
       sampleCount: used.length,
       usedFallback: withinWeek.length === 0,
       image_url,
+      lowest_listing_price_jpy,
     }
    } catch (e) {
      return { ok: false, error: 'สคริปต์อ่านหน้า SNKRDUNK พัง: ' + String((e && e.message) || e) }
@@ -264,6 +290,8 @@ async function runJob(jobId, cards, webappTabId) {
             market_price_jpy: result.price_jpy,
             exchange_rate: rate,
             image_url: result.image_url || undefined,
+            lowest_listing_price_jpy:
+              typeof result.lowest_listing_price_jpy === 'number' ? result.lowest_listing_price_jpy : undefined,
           }),
         })
         const postJson = await postRes.json().catch(() => ({}))

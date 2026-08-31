@@ -39,6 +39,8 @@ export interface Card {
   sold_from_card_id: string | null
   sequential_set_id: string | null
   created_at: string
+  lowest_listing_price_jpy: number | null
+  lowest_listing_price_fetched_at: string | null
 }
 
 export interface PriceHistory {

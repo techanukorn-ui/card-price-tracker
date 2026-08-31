@@ -240,6 +240,13 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
               : undefined
           }
         />
+        {!card.is_sold && card.lowest_listing_price_jpy != null && (
+          <InfoTile
+            label="ตั้งขายต่ำสุดตอนนี้ (SNKRDUNK)"
+            value={formatJPY(card.lowest_listing_price_jpy)}
+            hint={card.lowest_listing_price_fetched_at ? `อัปเดต ${formatRelative(card.lowest_listing_price_fetched_at)}` : undefined}
+          />
+        )}
         {!card.is_wishlist && profitInfo && (
           <>
             <InfoTile
