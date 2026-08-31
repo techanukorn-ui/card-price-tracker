@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Card Price Tracker - Mobile Batch Update
 // @namespace    card-price-tracker
-// @version      1.1
+// @version      1.2
 // @description  Scrapes SNKRDUNK sold-price history and reports it back to card-price-tracker, one card per page load. Only activates when the page URL carries the cpt_* queue params created by the web app's "อัปเดตราคา (มือถือ)" button — otherwise it's a no-op, safe to leave installed and browsing SNKRDUNK normally.
 // @match        https://snkrdunk.com/*
 // @run-at       document-idle
@@ -105,12 +105,15 @@
 
   // Same rule as browser-extension/background.js's findPriceGridButton():
   // SNKRDUNK has two button sets with overlapping label text — a price grid
-  // near the top (label immediately followed by "¥N,NNN~" or "出品待ち") and a
-  // separate plain-text filter row further down (just "PSA10" etc, matched by
+  // near the top (label followed by "¥N,NNN~" or "出品待ち") and a separate
+  // plain-text filter row further down (just "PSA10" etc, matched by
   // findButton() above to filter the sold-history table). This matches the
   // price-grid chip specifically so the reported price isn't always null.
+  // Sealed-box quantity chips insert a "(99+)"-style listing count between
+  // the label and the price, e.g. "1個(99+)¥17,500~" — card grade chips
+  // don't ("PSA10¥820,000~"). The optional group covers both.
   function findPriceGridButton(label) {
-    const re = new RegExp('^' + escapeRegex(label) + '(¥|出品待ち)')
+    const re = new RegExp('^' + escapeRegex(label) + '(\\([^)]*\\))?(¥|出品待ち)')
     return Array.from(document.querySelectorAll('button')).find((b) => re.test(b.textContent.trim())) || null
   }
 

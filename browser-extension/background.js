@@ -89,14 +89,19 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedB
 
   // SNKRDUNK renders TWO different button sets with overlapping labels: a
   // price grid near the top (one chip per grade/condition, its own label
-  // text immediately followed by either a price like "¥2,290,000~" or
-  // "出品待ち" when nothing is listed) and a separate plain-text filter row
-  // further down (just "PSA10" etc, used to filter the 売買履歴 sold-history
-  // table — that's what findButton() above matches). Conflating the two
-  // was the original bug: reading price off the plain filter button always
+  // text followed by either a price like "¥2,290,000~" or "出品待ち" when
+  // nothing is listed) and a separate plain-text filter row further down
+  // (just "PSA10" etc, used to filter the 売買履歴 sold-history table —
+  // that's what findButton() above matches). Conflating the two was the
+  // original bug: reading price off the plain filter button always
   // returned null. This matches the price-grid chip specifically.
+  //
+  // Sealed-box quantity chips additionally insert a "(99+)"-style listing
+  // count between the label and the price, e.g. "1個(99+)¥17,500~" — card
+  // grade chips don't have this ("PSA10¥820,000~"). The optional group
+  // below accounts for both.
   function findPriceGridButton(label) {
-    const re = new RegExp('^' + escapeRegex(label) + '(¥|出品待ち)')
+    const re = new RegExp('^' + escapeRegex(label) + '(\\([^)]*\\))?(¥|出品待ち)')
     return Array.from(document.querySelectorAll('button')).find((b) => re.test(b.textContent.trim())) || null
   }
 
