@@ -4,7 +4,7 @@ import { checkAndNotifyPriceAlerts } from '@/lib/priceAlerts'
 import { checkAndNotifyPortfolioAlerts } from '@/lib/portfolioAlerts'
 
 // POST /api/update-price-mobile
-// Body: { card_id: string, market_price_jpy: number, exchange_rate: number, market_price_thb?: number }
+// Body: { card_id: string, market_price_jpy: number, exchange_rate: number, market_price_thb?: number, image_url?: string, lowest_listing_price_jpy?: number }
 //
 // Deliberately a separate copy of /api/update-price's logic rather than a
 // shared helper: this endpoint is called cross-origin (fetch() from a
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'invalid JSON body' }, { status: 400, headers: CORS_HEADERS })
   }
 
-  const { card_id, market_price_jpy, exchange_rate, image_url } = body || {}
+  const { card_id, market_price_jpy, exchange_rate, image_url, lowest_listing_price_jpy } = body || {}
 
   if (!card_id || typeof card_id !== 'string') {
     return NextResponse.json({ success: false, error: 'card_id is required' }, { status: 400, headers: CORS_HEADERS })
@@ -71,6 +71,13 @@ export async function POST(req: NextRequest) {
 
   if (typeof image_url === 'string' && image_url && !card.image_url && !card.custom_image_url) {
     await supabaseAdmin.from('cards').update({ image_url }).eq('id', card_id)
+  }
+
+  if (typeof lowest_listing_price_jpy === 'number' && isFinite(lowest_listing_price_jpy)) {
+    await supabaseAdmin
+      .from('cards')
+      .update({ lowest_listing_price_jpy, lowest_listing_price_fetched_at: new Date().toISOString() })
+      .eq('id', card_id)
   }
 
   const { data, error } = await supabaseAdmin

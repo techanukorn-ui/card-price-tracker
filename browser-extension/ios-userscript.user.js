@@ -99,6 +99,27 @@
     return Array.from(document.querySelectorAll('button')).find((b) => b.textContent.trim() === label) || null
   }
 
+  function escapeRegex(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  }
+
+  // Same rule as browser-extension/background.js's findPriceGridButton():
+  // SNKRDUNK has two button sets with overlapping label text — a price grid
+  // near the top (label immediately followed by "¥N,NNN~" or "出品待ち") and a
+  // separate plain-text filter row further down (just "PSA10" etc, matched by
+  // findButton() above to filter the sold-history table). This matches the
+  // price-grid chip specifically so the reported price isn't always null.
+  function findPriceGridButton(label) {
+    const re = new RegExp('^' + escapeRegex(label) + '(¥|出品待ち)')
+    return Array.from(document.querySelectorAll('button')).find((b) => re.test(b.textContent.trim())) || null
+  }
+
+  function readListingPriceFromButton(btn) {
+    if (!btn) return null
+    const m = (btn.textContent || '').match(/¥\s?([\d,]+)/)
+    return m ? Number(m[1].replace(/,/g, '')) : null
+  }
+
   // Same rule as browser-extension/background.js's findMainImage(): the
   // card's own product photo is the one img[src] containing "size=l".
   function findMainImage() {
@@ -144,8 +165,9 @@
     const avg = used.reduce((sum, r) => sum + r.price, 0) / used.length
 
     const image_url = card.hasImage ? null : findMainImage()
+    const lowest_listing_price_jpy = readListingPriceFromButton(findPriceGridButton(targetVariant))
 
-    return { ok: true, price_jpy: Math.round(avg * 100) / 100, image_url }
+    return { ok: true, price_jpy: Math.round(avg * 100) / 100, image_url, lowest_listing_price_jpy }
   }
 
   function nextStepUrl(nextIndex) {
@@ -172,6 +194,8 @@
               market_price_jpy: result.price_jpy,
               exchange_rate: rate,
               image_url: result.image_url || undefined,
+              lowest_listing_price_jpy:
+                typeof result.lowest_listing_price_jpy === 'number' ? result.lowest_listing_price_jpy : undefined,
             }),
           })
         } catch (e) {
