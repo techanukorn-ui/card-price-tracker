@@ -55,3 +55,37 @@ export interface PriceHistory {
 export interface CardWithLatestPrice extends Card {
   latestPrice: PriceHistory | null
 }
+
+export type PriceAlertDirection = 'above' | 'below'
+
+// Summarized per-card status for the 🔔 badge shown on CardTile in the list
+// view: 'waiting' = an active alert hasn't hit its target yet, 'triggered' =
+// it has. Computed in app/page.tsx from the raw price_alerts rows.
+export type AlertBadgeStatus = 'waiting' | 'triggered'
+
+export interface PriceAlert {
+  id: string
+  card_id: string
+  target_price_jpy: number
+  direction: PriceAlertDirection
+  note: string | null
+  is_active: boolean
+  triggered_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Global (not per-card) target on total portfolio market value — "การ์ดของฉัน"
+// scope only, same as Dashboard/buildWeeklyDigest('mine'). Checked after
+// every price update (lib/portfolioAlerts.ts), same trigger-once-then-arm
+// behavior as PriceAlert.
+export interface PortfolioAlert {
+  id: string
+  target_value_thb: number
+  direction: PriceAlertDirection
+  note: string | null
+  is_active: boolean
+  triggered_at: string | null
+  created_at: string
+  updated_at: string
+}

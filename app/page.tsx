@@ -1,9 +1,9 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { CATEGORY_OPTIONS, Card, CardWithLatestPrice, ITEM_TYPE_OPTIONS, PriceHistory, SEALED_BOX_ITEM_TYPE } from '@/lib/types'
+import { AlertBadgeStatus, CATEGORY_OPTIONS, Card, CardWithLatestPrice, ITEM_TYPE_OPTIONS, PriceHistory, SEALED_BOX_ITEM_TYPE } from '@/lib/types'
 import { calcProfit, formatPct, formatRelative, formatSigned, formatTHB } from '@/lib/format'
 import { ExchangeRateSetting, getFixedExchangeRate, getSiteBranding, SiteBranding } from '@/lib/appSettings'
 import {
@@ -14,10 +14,13 @@ import {
 } from '@/lib/priceUpdateBridge'
 import { buildMobileBatchStartUrl, fetchExchangeRate, loadMobileJob, MobileBatchJob, saveMobileJob } from '@/lib/mobilePriceUpdate'
 import { useRefetchOnResume } from '@/lib/useRefetchOnResume'
+import { fetchAllRows } from '@/lib/fetchAll'
 import CardTile from '@/components/CardTile'
 import PriceUpdateBar from '@/components/PriceUpdateBar'
 import MobilePriceUpdateBar from '@/components/MobilePriceUpdateBar'
 import ExchangeRateSettingsModal from '@/components/ExchangeRateSettingsModal'
+import TelegramSettingsModal from '@/components/TelegramSettingsModal'
+import PortfolioAlertsModal from '@/components/PortfolioAlertsModal'
 import BrandingSettingsModal from '@/components/BrandingSettingsModal'
 import CardFormModal from '@/components/CardFormModal'
 import MoveToCollectionModal from '@/components/MoveToCollectionModal'
@@ -27,7 +30,15 @@ import SequentialSetFormModal from '@/components/SequentialSetFormModal'
 import Dashboard from '@/components/Dashboard'
 import ThemeToggle from '@/components/ThemeToggle'
 
+const LIST_SCROLL_KEY = 'card-tracker:list-scroll'
+const LIST_TAB_KEY = 'card-tracker:list-tab'
+
+function isTab(value: string | null): value is Tab {
+  return value === 'mine' || value === 'sold' || value === 'wishlist'
+}
+
 type Tab = 'mine' | 'sold' | 'wishlist'
+type AlertSummaryRow = { id: string; card_id: string; is_active: boolean; triggered_at: string | null }
 type MyCardRenderItem =
   | { type: 'single'; card: CardWithLatestPrice }
   | { type: 'set'; setId: string; cards: CardWithLatestPrice[] }
@@ -193,6 +204,7 @@ function HomePageInner() {
   const [tab, setTab] = useState<Tab>('mine')
   const [cards, setCards] = useState<Card[]>([])
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([])
+  const [priceAlerts, setPriceAlerts] = useState<AlertSummaryRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -229,6 +241,9 @@ function HomePageInner() {
     loadExchangeRateInfo()
   }, [loadExchangeRateInfo])
 
+  const [telegramSettingsOpen, setTelegramSettingsOpen] = useState(false)
+  const [portfolioAlertsOpen, setPortfolioAlertsOpen] = useState(false)
+
   const [brandingSettingsOpen, setBrandingSettingsOpen] = useState(false)
   const [branding, setBranding] = useState<SiteBranding | null>(null)
   const loadBranding = useCallback(() => {
@@ -241,15 +256,21 @@ function HomePageInner() {
 
   const loadData = useCallback(async () => {
     setError(null)
-    const [{ data: cardsData, error: cardsErr }, { data: priceData, error: priceErr }] = await Promise.all([
-      supabase.from('cards').select('*').order('created_at', { ascending: false }),
-      supabase.from('price_history').select('*').order('fetched_at', { ascending: false }),
-    ])
-    if (cardsErr) setError(cardsErr.message)
-    else if (priceErr) setError(priceErr.message)
-    setCards(cardsData || [])
-    setPriceHistory(priceData || [])
-    setLoading(false)
+    try {
+      const [{ data: cardsData, error: cardsErr }, priceData, { data: alertsData }] = await Promise.all([
+        supabase.from('cards').select('*').order('created_at', { ascending: false }),
+        fetchAllRows<PriceHistory>(supabase, 'price_history', '*'),
+        supabase.from('price_alerts').select('id, card_id, is_active, triggered_at'),
+      ])
+      if (cardsErr) setError(cardsErr.message)
+      setCards(cardsData || [])
+      setPriceHistory(priceData)
+      setPriceAlerts(alertsData || [])
+    } catch (e: any) {
+      setError(e?.message || 'โหลดข้อมูลไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -257,17 +278,80 @@ function HomePageInner() {
   }, [loadData])
   useRefetchOnResume(loadData)
 
+  // Remember scroll position across a visit to a card's detail page so
+  // coming back doesn't dump you back at the top of the list. Save on the
+  // click's capture phase — Next.js resets scroll to 0 as part of the
+  // navigation itself, so waiting for unmount (or even the click's bubble
+  // phase) can already see scrollY as 0 by the time we read it.
+  const scrollRestoredRef = useRef(false)
+  useEffect(() => {
+    function save() {
+      sessionStorage.setItem(LIST_SCROLL_KEY, String(window.scrollY))
+    }
+    window.addEventListener('click', save, true)
+    return () => window.removeEventListener('click', save, true)
+  }, [])
+
+  // Remember which tab (mine/sold/wishlist) was active for the same reason —
+  // the list page fully remounts on the way back from a card's detail page,
+  // which would otherwise reset the tab to the 'mine' default. Restoring it
+  // has to happen in an effect (after mount), not in the useState initializer
+  // — reading sessionStorage during the initial render would make the
+  // server-rendered HTML (always 'mine') mismatch the client's first render,
+  // which corrupts hydration (the tab label and the rendered list end up
+  // showing different tabs). Saving only happens from selectTab (an explicit
+  // user click), not from a generic effect on every `tab` change — an effect
+  // would also fire right after this restore runs and, depending on effect
+  // ordering, can re-write the pre-restore value and clobber what we just
+  // restored.
+  useEffect(() => {
+    const saved = sessionStorage.getItem(LIST_TAB_KEY)
+    if (isTab(saved)) setTab(saved)
+  }, [])
+  function selectTab(next: Tab) {
+    setTab(next)
+    sessionStorage.setItem(LIST_TAB_KEY, next)
+  }
+  useEffect(() => {
+    if (loading || scrollRestoredRef.current) return
+    scrollRestoredRef.current = true
+    const saved = sessionStorage.getItem(LIST_SCROLL_KEY)
+    if (saved) window.scrollTo(0, Number(saved))
+  }, [loading])
+
   const latestPriceByCard = useMemo(() => {
     const map = new Map<string, PriceHistory>()
-    // priceHistory is sorted fetched_at desc, so first occurrence per card is the latest.
+    // priceHistory comes from fetchAllRows paged by id, not fetched_at, so
+    // pick the latest per card by comparing timestamps rather than relying
+    // on array order.
     for (const p of priceHistory) {
-      if (!map.has(p.card_id)) map.set(p.card_id, p)
+      const current = map.get(p.card_id)
+      if (!current || new Date(p.fetched_at).getTime() > new Date(current.fetched_at).getTime()) {
+        map.set(p.card_id, p)
+      }
     }
     return map
   }, [priceHistory])
 
   const withLatest = (list: Card[]): CardWithLatestPrice[] =>
     list.map((c) => ({ ...c, latestPrice: latestPriceByCard.get(c.id) || null }))
+
+  // One 🔔 badge per card in the list view (see CardTile) — 'waiting' wins
+  // over 'triggered' when a card has both an unfired and an already-fired
+  // active alert, so the badge always reflects "there's still something to
+  // watch for" when that's true.
+  const alertStatusByCard = useMemo(() => {
+    const map = new Map<string, AlertBadgeStatus>()
+    for (const a of priceAlerts) {
+      if (!a.is_active) continue
+      if (!a.triggered_at) {
+        map.set(a.card_id, 'waiting')
+      } else if (!map.has(a.card_id)) {
+        map.set(a.card_id, 'triggered')
+      }
+    }
+    return map
+  }, [priceAlerts])
 
   const myCards = useMemo(
     () => withLatest(cards.filter((c) => !c.is_wishlist && !c.is_sold)),
@@ -519,6 +603,22 @@ function HomePageInner() {
                   : 'ตั้งเรทค่าเงิน'}
               </button>
             )}
+            {!readOnly && (
+              <button
+                onClick={() => setTelegramSettingsOpen(true)}
+                className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+              >
+                🔔 แจ้งเตือนราคา
+              </button>
+            )}
+            {!readOnly && (
+              <button
+                onClick={() => setPortfolioAlertsOpen(true)}
+                className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+              >
+                🎯 เป้าพอร์ตรวม
+              </button>
+            )}
           </div>
           <ThemeToggle />
         </div>
@@ -526,7 +626,7 @@ function HomePageInner() {
 
       <div className="mb-6 flex gap-2 rounded-xl bg-slate-100 p-1 dark:bg-slate-900">
         <button
-          onClick={() => setTab('mine')}
+          onClick={() => selectTab('mine')}
           className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
             tab === 'mine'
               ? 'bg-white text-brand-700 shadow dark:bg-slate-800 dark:text-brand-300'
@@ -536,7 +636,7 @@ function HomePageInner() {
           การ์ดของฉัน ({cards.filter((c) => !c.is_wishlist && !c.is_sold).length})
         </button>
         <button
-          onClick={() => setTab('sold')}
+          onClick={() => selectTab('sold')}
           className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
             tab === 'sold'
               ? 'bg-white text-brand-700 shadow dark:bg-slate-800 dark:text-brand-300'
@@ -546,7 +646,7 @@ function HomePageInner() {
           ขายแล้ว ({cards.filter((c) => !c.is_wishlist && c.is_sold).length})
         </button>
         <button
-          onClick={() => setTab('wishlist')}
+          onClick={() => selectTab('wishlist')}
           className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
             tab === 'wishlist'
               ? 'bg-white text-brand-700 shadow dark:bg-slate-800 dark:text-brand-300'
@@ -704,6 +804,7 @@ function HomePageInner() {
                           onUpdatePriceMobile={() => handleUpdatePricesMobile([c])}
                           linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
                           readOnly={readOnly}
+                          alertStatus={alertStatusByCard.get(c.id)}
                         />
                       ))}
                     </div>
@@ -720,6 +821,7 @@ function HomePageInner() {
                     onUpdatePriceMobile={() => handleUpdatePricesMobile([item.card])}
                     linkHref={readOnly ? `/card/${item.card.id}?readonly=1` : `/card/${item.card.id}`}
                     readOnly={readOnly}
+                    alertStatus={alertStatusByCard.get(item.card.id)}
                   />
                 )
               )}
@@ -781,6 +883,7 @@ function HomePageInner() {
                           onUnsell={() => handleUnsell(c)}
                           linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
                           readOnly={readOnly}
+                          alertStatus={alertStatusByCard.get(c.id)}
                         />
                       ))}
                     </div>
@@ -795,6 +898,7 @@ function HomePageInner() {
                     onUnsell={() => handleUnsell(item.card)}
                     linkHref={readOnly ? `/card/${item.card.id}?readonly=1` : `/card/${item.card.id}`}
                     readOnly={readOnly}
+                    alertStatus={alertStatusByCard.get(item.card.id)}
                   />
                 )
               )}
@@ -847,6 +951,7 @@ function HomePageInner() {
                   onUpdatePriceMobile={() => handleUpdatePricesMobile([c])}
                   linkHref={readOnly ? `/card/${c.id}?readonly=1` : `/card/${c.id}`}
                   readOnly={readOnly}
+                  alertStatus={alertStatusByCard.get(c.id)}
                 />
               ))}
             </div>
@@ -860,6 +965,10 @@ function HomePageInner() {
       {!readOnly && rateSettingsOpen && (
         <ExchangeRateSettingsModal onClose={() => setRateSettingsOpen(false)} onSaved={loadExchangeRateInfo} />
       )}
+      {!readOnly && telegramSettingsOpen && (
+        <TelegramSettingsModal onClose={() => setTelegramSettingsOpen(false)} onSaved={() => {}} />
+      )}
+      {!readOnly && portfolioAlertsOpen && <PortfolioAlertsModal onClose={() => setPortfolioAlertsOpen(false)} />}
 
       {!readOnly && brandingSettingsOpen && (
         <BrandingSettingsModal onClose={() => setBrandingSettingsOpen(false)} onSaved={loadBranding} />

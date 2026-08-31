@@ -51,3 +51,30 @@ export async function setSiteBranding(input: { title?: string; iconUrl?: string 
   const { error } = await supabase.from('app_settings').upsert(payload)
   if (error) throw new Error(error.message)
 }
+
+// Telegram bot token + the user's personal chat id, used by lib/priceAlerts.ts
+// (server-side, via supabaseAdmin) to push a message when a price_alerts
+// target is crossed. Same app_settings row (id=1) as the fields above.
+
+export interface TelegramSettings {
+  botToken: string | null
+  chatId: string | null
+  updatedAt: string | null
+}
+
+export async function getTelegramSettings(): Promise<TelegramSettings> {
+  const { data } = await supabase.from('app_settings').select('telegram_bot_token, telegram_chat_id, updated_at').eq('id', 1).maybeSingle()
+  return {
+    botToken: data?.telegram_bot_token ?? null,
+    chatId: data?.telegram_chat_id ?? null,
+    updatedAt: data?.updated_at ?? null,
+  }
+}
+
+export async function setTelegramSettings(input: { botToken?: string; chatId?: string }): Promise<void> {
+  const payload: Record<string, unknown> = { id: 1, updated_at: new Date().toISOString() }
+  if (input.botToken !== undefined) payload.telegram_bot_token = input.botToken
+  if (input.chatId !== undefined) payload.telegram_chat_id = input.chatId
+  const { error } = await supabase.from('app_settings').upsert(payload)
+  if (error) throw new Error(error.message)
+}

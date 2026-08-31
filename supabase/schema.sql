@@ -93,6 +93,63 @@ drop policy if exists "price_history_allow_all" on public.price_history;
 create policy "price_history_allow_all" on public.price_history for all
   using (true) with check (true);
 
+-- ============ price_alerts ============
+-- per-card price target: notify (via Telegram, see lib/priceAlerts.ts) when
+-- a newly-fetched market_price_jpy crosses target_price_jpy in the given
+-- direction. 'above' = notify once price rises to/past target (e.g. a losing
+-- card reaching breakeven, or a held card reaching a profit goal). 'below' =
+-- notify once price falls to/under target (e.g. a wishlist card getting
+-- cheap enough to buy). Fires once: triggered_at gets set and the alert goes
+-- quiet until the user edits target_price_jpy or re-activates it (editing
+-- resets triggered_at to null — see lib/priceAlerts.ts).
+create table if not exists public.price_alerts (
+  id uuid primary key default gen_random_uuid(),
+  card_id uuid not null references public.cards(id) on delete cascade,
+  target_price_jpy numeric not null,
+  direction text not null check (direction in ('above', 'below')),
+  note text,
+  is_active boolean not null default true,
+  triggered_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists price_alerts_card_id_idx on public.price_alerts(card_id);
+
+alter table public.price_alerts enable row level security;
+drop policy if exists "price_alerts_allow_all" on public.price_alerts;
+create policy "price_alerts_allow_all" on public.price_alerts for all
+  using (true) with check (true);
+
+-- ============ portfolio_alerts ============
+-- Global (not per-card) target on total portfolio market value —
+-- "การ์ดของฉัน" scope only (matches Dashboard/buildWeeklyDigest('mine')),
+-- checked after every price update (lib/portfolioAlerts.ts). Same
+-- once-then-arm behavior as price_alerts above.
+create table if not exists public.portfolio_alerts (
+  id uuid primary key default gen_random_uuid(),
+  target_value_thb numeric not null,
+  direction text not null check (direction in ('above', 'below')),
+  note text,
+  is_active boolean not null default true,
+  triggered_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.portfolio_alerts enable row level security;
+drop policy if exists "portfolio_alerts_allow_all" on public.portfolio_alerts;
+create policy "portfolio_alerts_allow_all" on public.portfolio_alerts for all
+  using (true) with check (true);
+
+-- ============ app_settings: telegram notification settings ============
+-- app_settings itself was created manually by the user (see lib/appSettings.ts
+-- for the jpy_thb_rate / site_title columns added the same way) — these two
+-- columns hold the Telegram bot token + the user's personal chat id that
+-- price-alert notifications get pushed to. Same row (id=1).
+alter table public.app_settings add column if not exists telegram_bot_token text;
+alter table public.app_settings add column if not exists telegram_chat_id text;
+
 -- ============ storage bucket for custom card images ============
 insert into storage.buckets (id, name, public)
 values ('card-images', 'card-images', true)
