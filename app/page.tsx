@@ -576,7 +576,7 @@ function HomePageInner() {
             <h1 className="font-display text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 sm:text-2xl">
               {branding?.title || 'Card Price Tracker'}
             </h1>
-            <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">คลังการ์ดสะสม Pokémon &amp; Sports</p>
+            <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">คลังการ์ดสะสม TCG &amp; Sports</p>
           </div>
         </button>
         <div className="relative flex shrink-0 items-start gap-2">
