@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Card Price Tracker - Mobile Batch Update
 // @namespace    card-price-tracker
-// @version      1.2
+// @version      1.3
 // @description  Scrapes SNKRDUNK sold-price history and reports it back to card-price-tracker, one card per page load. Only activates when the page URL carries the cpt_* queue params created by the web app's "อัปเดตราคา (มือถือ)" button — otherwise it's a no-op, safe to leave installed and browsing SNKRDUNK normally.
 // @match        https://snkrdunk.com/*
 // @run-at       document-idle
@@ -12,10 +12,13 @@
 // browser-extension/background.js (scrapeCardOnPage) — see that file's
 // comments for the full rationale. The difference here is there's no
 // background page to hold queue state between cards (iOS's Userscripts app
-// has no equivalent), so the whole remaining queue rides along as URL query
-// params and each "next card" is a real location.href navigation in the same
-// tab, never a new popup — that's what keeps this working under iOS Safari's
-// popup blocker.
+// has no equivalent), so each "next card" is a real location.href navigation
+// in the same tab, never a new popup — that's what keeps this working under
+// iOS Safari's popup blocker. The queue itself lives server-side
+// (mobile_price_jobs table, fetched via cpt_qapi) rather than riding along in
+// the URL — an earlier version base64-encoded the whole queue into every
+// hop's URL, which SNKRDUNK/CloudFront started rejecting with 414 (URI Too
+// Long) once a combined "การ์ดของฉัน + wishlist" batch got big enough.
 
 ;(function () {
   'use strict'
@@ -28,31 +31,17 @@
   const SEALED_BOX_VARIANT_LABEL = '1個'
 
   const params = new URLSearchParams(window.location.search)
-  const q = params.get('cpt_q')
   const iStr = params.get('cpt_i')
   const token = params.get('cpt_t')
   const apiUrl = params.get('cpt_api')
+  const queueApiUrl = params.get('cpt_qapi')
   const rateStr = params.get('cpt_rate')
 
   // Not a batch-update navigation (normal browsing) — do nothing.
-  if (!q || iStr === null || !token || !apiUrl || !rateStr) return
+  if (iStr === null || !token || !apiUrl || !queueApiUrl || !rateStr) return
 
   const index = Number(iStr)
   const rate = Number(rateStr)
-
-  let queue
-  try {
-    queue = JSON.parse(decodeURIComponent(escape(atob(q))))
-  } catch (e) {
-    console.error('[cpt-mobile] อ่านคิวจาก URL ไม่ได้:', e)
-    return
-  }
-
-  const card = queue[index]
-  if (!card) {
-    console.error('[cpt-mobile] index ไม่ตรงกับคิว:', index)
-    return
-  }
 
   function sleep(ms) {
     return new Promise((r) => setTimeout(r, ms))
@@ -130,7 +119,7 @@
     return img ? img.src : null
   }
 
-  async function scrapePrice() {
+  async function scrapePrice(card) {
     const tableReady = await pollUntil(() => readRows().length > 0, 8000)
     if (!tableReady) return { ok: false, error: 'โหลดตารางประวัติการขายไม่ทัน' }
 
@@ -173,20 +162,37 @@
     return { ok: true, price_jpy: Math.round(avg * 100) / 100, image_url, lowest_listing_price_jpy }
   }
 
-  function nextStepUrl(nextIndex) {
+  function nextStepUrl(queue, nextIndex) {
     const next = queue[nextIndex]
     const u = new URL(next.url)
-    u.searchParams.set('cpt_q', q)
     u.searchParams.set('cpt_i', String(nextIndex))
     u.searchParams.set('cpt_t', token)
     u.searchParams.set('cpt_api', apiUrl)
+    u.searchParams.set('cpt_qapi', queueApiUrl)
     u.searchParams.set('cpt_rate', rateStr)
     return u.toString()
   }
 
   ;(async () => {
+    let queue
     try {
-      const result = await scrapePrice()
+      const res = await fetch(`${queueApiUrl}?token=${encodeURIComponent(token)}`)
+      const body = await res.json()
+      if (!res.ok || !Array.isArray(body.queue)) throw new Error(body.error || `HTTP ${res.status}`)
+      queue = body.queue
+    } catch (e) {
+      console.error('[cpt-mobile] โหลดคิวจากเซิร์ฟเวอร์ไม่ได้:', e)
+      return
+    }
+
+    const card = queue[index]
+    if (!card) {
+      console.error('[cpt-mobile] index ไม่ตรงกับคิว:', index)
+      return
+    }
+
+    try {
+      const result = await scrapePrice(card)
       if (result.ok) {
         try {
           await fetch(apiUrl, {
@@ -215,7 +221,7 @@
 
     const nextIndex = index + 1
     if (nextIndex < queue.length) {
-      window.location.href = nextStepUrl(nextIndex)
+      window.location.href = nextStepUrl(queue, nextIndex)
     } else {
       console.log('[cpt-mobile] อัปเดตครบทุกใบแล้ว ปิดแท็บ')
       window.close()

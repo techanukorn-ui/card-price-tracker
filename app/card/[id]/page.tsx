@@ -115,7 +115,14 @@ function CardDetailPageInner({ params }: { params: { id: string } }) {
         return
       }
 
-      const batch = buildMobileBatchStartUrl([input], rate)
+      let batch
+      try {
+        batch = await buildMobileBatchStartUrl([input], rate)
+      } catch {
+        win.close()
+        alert('บันทึกคิวอัปเดตราคาไม่สำเร็จ ลองใหม่อีกครั้ง')
+        return
+      }
       if (!batch) {
         win.close()
         return

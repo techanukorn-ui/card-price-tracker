@@ -150,6 +150,28 @@ create policy "portfolio_alerts_allow_all" on public.portfolio_alerts for all
 alter table public.app_settings add column if not exists telegram_bot_token text;
 alter table public.app_settings add column if not exists telegram_chat_id text;
 
+-- ============ mobile_price_jobs: iOS batch-update queue storage ============
+-- The mobile batch-update flow (lib/mobilePriceUpdate.ts +
+-- browser-extension/ios-userscript.user.js) navigates a single tab through
+-- SNKRDUNK pages one card at a time. Each hop used to carry the *entire*
+-- remaining queue (every card's url/grade/etc, base64-encoded) as a URL query
+-- param — fine for a couple cards, but a combined "การ์ดของฉัน + wishlist"
+-- batch made the encoded queue long enough that SNKRDUNK/CloudFront rejected
+-- the request with 414 (URI Too Long). Now the queue is written here once up
+-- front and each hop's URL only carries a short token + index, so URL length
+-- no longer scales with how many cards are in the batch.
+create table if not exists public.mobile_price_jobs (
+  token text primary key,
+  queue jsonb not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.mobile_price_jobs enable row level security;
+
+drop policy if exists "mobile_price_jobs_allow_all" on public.mobile_price_jobs;
+create policy "mobile_price_jobs_allow_all" on public.mobile_price_jobs for all
+  using (true) with check (true);
+
 -- ============ storage bucket for custom card images ============
 insert into storage.buckets (id, name, public)
 values ('card-images', 'card-images', true)

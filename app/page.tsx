@@ -510,7 +510,14 @@ function HomePageInner() {
         return
       }
 
-      const batch = buildMobileBatchStartUrl(inputs, rate)
+      let batch
+      try {
+        batch = await buildMobileBatchStartUrl(inputs, rate)
+      } catch {
+        win.close()
+        alert('บันทึกคิวอัปเดตราคาไม่สำเร็จ ลองใหม่อีกครั้ง')
+        return
+      }
       if (!batch) {
         win.close()
         alert('การ์ดที่เลือกไม่มีลิงก์ SNKRDUNK เลย')
