@@ -191,7 +191,15 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedB
     const avg = used.reduce((sum, r) => sum + r.price, 0) / used.length
 
     const image_url = hasImage ? null : findMainImage()
-    const lowest_listing_price_jpy = readListingPriceFromButton(findPriceGridButton(targetVariant))
+    // The price grid (a separate section from the sold-history table polled
+    // above) can still be mid-render at this point, especially right after
+    // clicking the grade filter — reading it synchronously here was racing
+    // that render and intermittently coming back null, which silently froze
+    // cards.lowest_listing_price_jpy at its last successful value with no
+    // error surfaced (the main price_history insert still succeeds). Poll
+    // for it the same way the grade filter button itself is polled for.
+    const priceGridBtn = await pollUntil(() => findPriceGridButton(targetVariant), 5000)
+    const lowest_listing_price_jpy = readListingPriceFromButton(priceGridBtn)
 
     return {
       ok: true,
