@@ -30,7 +30,7 @@ export async function checkAndNotifyPriceAlerts(cardId: string, marketPriceJpy: 
 
     const { data: card } = await supabaseAdmin
       .from('cards')
-      .select('id, name, grade, is_wishlist, image_url, custom_image_url')
+      .select('id, name, grade, is_wishlist, image_url, custom_image_url, lowest_listing_price_jpy')
       .eq('id', cardId)
       .maybeSingle()
     if (!card) return
@@ -54,6 +54,9 @@ export async function checkAndNotifyPriceAlerts(cardId: string, marketPriceJpy: 
         `ราคาล่าสุด: ${formatJPY(marketPriceJpy)}`,
         `เป้าที่ตั้งไว้: ${formatJPY(alert.target_price_jpy)}`,
       ]
+      if (card.lowest_listing_price_jpy != null) {
+        lines.push(`ตั้งขายต่ำสุดตอนนี้: ${formatJPY(card.lowest_listing_price_jpy)}`)
+      }
       if (alert.note) lines.push(`หมายเหตุ: ${escapeHtml(alert.note)}`)
       lines.push(`${siteOrigin}/card/${card.id}`)
 
