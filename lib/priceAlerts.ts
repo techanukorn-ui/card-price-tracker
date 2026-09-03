@@ -8,24 +8,40 @@ import { escapeHtml, sendTelegramMessage, sendTelegramPhoto } from './telegram'
 // message for each one the new price crosses. Works the same for cards in
 // either tab (การ์ดของฉัน / Wishlist) — alerts are just keyed by card_id.
 //
+// Each alert watches one of two numbers (price_alerts.price_type): the
+// sold-price average ('sold_avg', passed in as marketPriceJpy) or the
+// current cheapest active listing ('listing', lowestListingPriceJpy — only
+// present when that run's SNKRDUNK scrape actually found one). A 'listing'
+// alert is simply skipped for this run if lowestListingPriceJpy is null —
+// it stays armed and gets evaluated again next update, same as any other
+// run that didn't produce a value for it.
+//
 // Never throws: a Telegram/config problem must not fail the price update
 // that triggered it.
-export async function checkAndNotifyPriceAlerts(cardId: string, marketPriceJpy: number, siteOrigin: string): Promise<void> {
+export async function checkAndNotifyPriceAlerts(
+  cardId: string,
+  marketPriceJpy: number,
+  siteOrigin: string,
+  lowestListingPriceJpy?: number | null
+): Promise<void> {
   try {
     const { data: alerts } = await supabaseAdmin
       .from('price_alerts')
-      .select('id, target_price_jpy, direction, note')
+      .select('id, target_price_jpy, direction, price_type, note')
       .eq('card_id', cardId)
       .eq('is_active', true)
       .is('triggered_at', null)
 
     if (!alerts || alerts.length === 0) return
 
-    const hits = alerts.filter(
-      (a) =>
-        (a.direction === 'above' && marketPriceJpy >= a.target_price_jpy) ||
-        (a.direction === 'below' && marketPriceJpy <= a.target_price_jpy)
-    )
+    const hits = alerts.filter((a) => {
+      const currentValue = a.price_type === 'listing' ? lowestListingPriceJpy : marketPriceJpy
+      if (typeof currentValue !== 'number' || !isFinite(currentValue)) return false
+      return (
+        (a.direction === 'above' && currentValue >= a.target_price_jpy) ||
+        (a.direction === 'below' && currentValue <= a.target_price_jpy)
+      )
+    })
     if (hits.length === 0) return
 
     const { data: card } = await supabaseAdmin
@@ -47,14 +63,20 @@ export async function checkAndNotifyPriceAlerts(cardId: string, marketPriceJpy: 
 
       if (!settings?.telegram_bot_token || !settings?.telegram_chat_id) continue
 
-      const directionLabel = alert.direction === 'above' ? 'ราคาขึ้นถึงเป้าแล้ว' : 'ราคาลงถึงเป้าแล้ว'
+      const isListing = alert.price_type === 'listing'
+      const typeLabel = isListing ? 'ราคาตั้งขายต่ำสุดในตลาด' : 'ราคาเฉลี่ยขายจริง'
+      const directionWord = alert.direction === 'above' ? 'ขึ้นถึง' : 'ลงถึง'
+      const currentValue = isListing ? lowestListingPriceJpy! : marketPriceJpy
       const lines = [
-        `🔔 <b>${directionLabel}</b>`,
+        `🔔 <b>${typeLabel}${directionWord}เป้าแล้ว</b>`,
         `${escapeHtml(card.name)} (${escapeHtml(card.grade)}${card.is_wishlist ? ' · Wishlist' : ''})`,
-        `ราคาล่าสุด: ${formatJPY(marketPriceJpy)}`,
+        `${typeLabel}: ${formatJPY(currentValue)}`,
         `เป้าที่ตั้งไว้: ${formatJPY(alert.target_price_jpy)}`,
       ]
-      if (card.lowest_listing_price_jpy != null) {
+      // Show the other price number too, for context, whichever one didn't trigger this alert.
+      if (isListing) {
+        lines.push(`ราคาเฉลี่ยขายจริงล่าสุด: ${formatJPY(marketPriceJpy)}`)
+      } else if (card.lowest_listing_price_jpy != null) {
         lines.push(`ตั้งขายต่ำสุดตอนนี้: ${formatJPY(card.lowest_listing_price_jpy)}`)
       }
       if (alert.note) lines.push(`หมายเหตุ: ${escapeHtml(alert.note)}`)

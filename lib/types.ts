@@ -58,6 +58,13 @@ export interface CardWithLatestPrice extends Card {
 
 export type PriceAlertDirection = 'above' | 'below'
 
+// Which of the card's two live price numbers an alert watches: the sold-price
+// average ('sold_avg', the long-standing default — what's shown as "ราคา
+// ตลาดล่าสุด") or the current cheapest active listing ('listing', "ตั้งขายต่ำสุด
+// ตอนนี้"). Old rows default to 'sold_avg' via the DB column default so
+// existing alerts keep behaving exactly as before.
+export type PriceAlertPriceType = 'sold_avg' | 'listing'
+
 // Summarized per-card status for the 🔔 badge shown on CardTile in the list
 // view: 'waiting' = an active alert hasn't hit its target yet, 'triggered' =
 // it has. Computed in app/page.tsx from the raw price_alerts rows.
@@ -68,6 +75,7 @@ export interface PriceAlert {
   card_id: string
   target_price_jpy: number
   direction: PriceAlertDirection
+  price_type: PriceAlertPriceType
   note: string | null
   is_active: boolean
   triggered_at: string | null

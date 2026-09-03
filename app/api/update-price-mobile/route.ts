@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: CORS_HEADERS })
   }
 
-  await checkAndNotifyPriceAlerts(card_id, market_price_jpy, req.nextUrl.origin)
+  await checkAndNotifyPriceAlerts(card_id, market_price_jpy, req.nextUrl.origin, lowest_listing_price_jpy)
   await checkAndNotifyPortfolioAlerts(req.nextUrl.origin)
 
   return NextResponse.json({ success: true, data }, { headers: CORS_HEADERS })
