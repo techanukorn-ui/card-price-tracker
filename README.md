@@ -76,7 +76,6 @@ npm run dev
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (สำหรับ `/api/update-price`, optional — ถ้าไม่ตั้งจะ fallback ไปใช้ anon key)
-- `ADMIN_PASSWORD` (รหัสผ่านปลดล็อกโหมดแก้ไข)
 
 ## ดึงราคาจาก SNKRDUNK แบบอัตโนมัติ
 
