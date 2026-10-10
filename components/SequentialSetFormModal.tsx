@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from 'react'
 import { CATEGORY_OPTIONS, GRADE_OPTIONS, RAW_CONDITION_OPTIONS } from '@/lib/types'
+import { formatTHB } from '@/lib/format'
 import Modal from './Modal'
 
 interface Props {
@@ -24,6 +25,8 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
   const [grade, setGrade] = useState('PSA10')
   const [rawCondition, setRawCondition] = useState<string>(RAW_CONDITION_OPTIONS[0])
   const [rows, setRows] = useState<Row[]>([emptyRow(), emptyRow()])
+  const [costMode, setCostMode] = useState<'perCard' | 'total'>('perCard')
+  const [totalCost, setTotalCost] = useState('')
   const [excludeFromTotals, setExcludeFromTotals] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -50,8 +53,12 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
       setError('กรุณากรอกชื่อการ์ดให้ครบทุกใบ')
       return
     }
-    if (rows.some((r) => r.cost.trim() === '' || isNaN(Number(r.cost)))) {
+    if (costMode === 'perCard' && rows.some((r) => r.cost.trim() === '' || isNaN(Number(r.cost)))) {
       setError('กรุณากรอกราคาซื้อให้ครบทุกใบ')
+      return
+    }
+    if (costMode === 'total' && (totalCost.trim() === '' || isNaN(Number(totalCost)))) {
+      setError('กรุณากรอกต้นทุนรวมของชุด')
       return
     }
 
@@ -59,8 +66,22 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
     try {
       const sequentialSetId = crypto.randomUUID()
 
-      for (const row of rows) {
-        const cost = Number(row.cost)
+      // In 'total' mode the user only knows what the whole set cost, not the
+      // per-card breakdown — split it evenly, with the last card absorbing
+      // the rounding remainder so the per-card costs still sum to the exact
+      // total they entered.
+      const rowCosts =
+        costMode === 'total'
+          ? (() => {
+              const total = Number(totalCost)
+              const n = rows.length
+              const share = Math.round(total / n)
+              return rows.map((_, i) => (i === n - 1 ? total - share * (n - 1) : share))
+            })()
+          : rows.map((r) => Number(r.cost))
+
+      for (const [i, row] of rows.entries()) {
+        const cost = rowCosts[i]
         const payload = {
           name: row.name.trim(),
           category,
@@ -144,6 +165,51 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
           </span>
         </label>
 
+        <Field label="ต้นทุน">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setCostMode('perCard')}
+              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium ${
+                costMode === 'perCard'
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+              }`}
+            >
+              แยกใบ
+            </button>
+            <button
+              type="button"
+              onClick={() => setCostMode('total')}
+              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium ${
+                costMode === 'total'
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+              }`}
+            >
+              รวมเป็นยอดเดียว
+            </button>
+          </div>
+        </Field>
+
+        {costMode === 'total' && (
+          <Field label="ต้นทุนรวมทั้งชุด (บาท)">
+            <input
+              type="number"
+              inputMode="decimal"
+              value={totalCost}
+              onChange={(e) => setTotalCost(e.target.value)}
+              className="input"
+              placeholder="เช่น 3000"
+            />
+            {totalCost.trim() !== '' && !isNaN(Number(totalCost)) && (
+              <p className="mt-1.5 text-[11px] text-slate-400">
+                เฉลี่ยใบละ ~{formatTHB(Number(totalCost) / rows.length)} (ระบบจะหารเฉลี่ยแล้วปัดเศษให้ยอดรวมตรงกับที่กรอก)
+              </p>
+            )}
+          </Field>
+        )}
+
         <div>
           <span className="mb-1 block text-xs font-medium text-slate-600">การ์ดในชุด</span>
           <div className="space-y-3">
@@ -156,14 +222,16 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
                     className="input flex-1"
                     placeholder={`ชื่อการ์ดใบที่ ${i + 1}`}
                   />
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={r.cost}
-                    onChange={(e) => updateRow(i, 'cost', e.target.value)}
-                    className="input !w-24"
-                    placeholder="ราคา"
-                  />
+                  {costMode === 'perCard' && (
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={r.cost}
+                      onChange={(e) => updateRow(i, 'cost', e.target.value)}
+                      className="input !w-24"
+                      placeholder="ราคา"
+                    />
+                  )}
                   {rows.length > 2 && (
                     <button
                       type="button"
