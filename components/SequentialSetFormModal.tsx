@@ -24,6 +24,7 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
   const [grade, setGrade] = useState('PSA10')
   const [rawCondition, setRawCondition] = useState<string>(RAW_CONDITION_OPTIONS[0])
   const [rows, setRows] = useState<Row[]>([emptyRow(), emptyRow()])
+  const [excludeFromTotals, setExcludeFromTotals] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -72,6 +73,7 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
           custom_image_url: null,
           is_wishlist: false,
           sequential_set_id: sequentialSetId,
+          exclude_from_totals: excludeFromTotals,
         }
         const res = await fetch('/api/cards', {
           method: 'POST',
@@ -128,6 +130,19 @@ export default function SequentialSetFormModal({ onClose, onSaved }: Props) {
             </select>
           </Field>
         )}
+
+        <label className="flex items-start gap-2 rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800/60">
+          <input
+            type="checkbox"
+            checked={excludeFromTotals}
+            onChange={(e) => setExcludeFromTotals(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span className="text-slate-600 dark:text-slate-300">
+            ไม่รวมในพอร์ต (ใช้กับทุกใบในชุด — ใช้เมื่อหาราคากลางไม่ได้) — ยังบันทึกต้นทุนไว้เหมือนเดิม
+            แต่จะไม่ถูกเอาไปรวมในมูลค่า/ต้นทุนรวมของพอร์ต
+          </span>
+        </label>
 
         <div>
           <span className="mb-1 block text-xs font-medium text-slate-600">การ์ดในชุด</span>
