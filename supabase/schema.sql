@@ -63,6 +63,13 @@ alter table public.cards add column if not exists item_type text not null defaul
 alter table public.cards add column if not exists lowest_listing_price_jpy numeric;
 alter table public.cards add column if not exists lowest_listing_price_fetched_at timestamptz;
 
+-- exclude_from_totals: for items with no reliable market price to benchmark
+-- against (e.g. sealed sets SNKRDUNK doesn't list) — the card still shows in
+-- "การ์ดของฉัน" with its own cost, but its cost/value is left out of every
+-- portfolio aggregate (Dashboard totals, the cost/value chart, category
+-- breakdown, weekly digest, portfolio alerts).
+alter table public.cards add column if not exists exclude_from_totals boolean not null default false;
+
 -- ============ price_history ============
 -- one row per price snapshot. never updated/overwritten, only inserted.
 create table if not exists public.price_history (

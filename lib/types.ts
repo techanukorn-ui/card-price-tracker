@@ -41,6 +41,7 @@ export interface Card {
   created_at: string
   lowest_listing_price_jpy: number | null
   lowest_listing_price_fetched_at: string | null
+  exclude_from_totals: boolean
 }
 
 export interface PriceHistory {
