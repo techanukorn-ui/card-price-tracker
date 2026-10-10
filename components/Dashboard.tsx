@@ -15,9 +15,10 @@ interface Props {
 }
 
 export default function Dashboard({ cards, priceHistory, latestPriceByCard }: Props) {
+  const allOwnedCards = useMemo(() => cards.filter((c) => !c.is_wishlist && !c.is_sold), [cards])
   const myCards = useMemo(
-    () => cards.filter((c) => !c.is_wishlist && !c.is_sold && !c.exclude_from_totals),
-    [cards]
+    () => allOwnedCards.filter((c) => !c.exclude_from_totals),
+    [allOwnedCards]
   )
 
   const stats = useMemo(() => {
@@ -34,15 +35,21 @@ export default function Dashboard({ cards, priceHistory, latestPriceByCard }: Pr
     }
     const profit = totalValue - totalCost
     const marginPct = totalCost === 0 ? 0 : (profit / totalCost) * 100
-    return { totalCost, totalValue, profit, marginPct, pricedCount, total: myCards.length }
-  }, [myCards, latestPriceByCard])
+    const totalCostAll = allOwnedCards.reduce((s, c) => s + (c.cost_thb ?? 0), 0)
+    return { totalCost, totalCostAll, totalValue, profit, marginPct, pricedCount, total: myCards.length }
+  }, [myCards, allOwnedCards, latestPriceByCard])
 
   const series = useMemo(() => buildPortfolioSeries(cards, priceHistory), [cards, priceHistory])
 
   return (
     <section>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile label="ต้นทุนรวม" value={formatTHB(stats.totalCost)} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <StatTile label="ต้นทุนรวมทั้งหมด" value={formatTHB(stats.totalCostAll)} hint="รวมใบที่ติ๊กไม่รวมในพอร์ตด้วย" />
+        <StatTile
+          label="ต้นทุนรวม (ในพอร์ต)"
+          value={formatTHB(stats.totalCost)}
+          hint={stats.totalCostAll !== stats.totalCost ? 'ไม่รวมใบที่ติ๊กไม่รวมในพอร์ต' : undefined}
+        />
         <StatTile
           label="มูลค่าตลาดรวม"
           value={stats.pricedCount > 0 ? formatTHB(stats.totalValue) : 'ยังไม่มีราคา'}
