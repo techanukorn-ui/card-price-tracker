@@ -61,7 +61,10 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedB
     if (m) return new Date(Date.now() - Number(m[1]) * 60 * 60 * 1000)
     m = s.match(/^(\d+)日前$/)
     if (m) return new Date(Date.now() - Number(m[1]) * 24 * 60 * 60 * 1000)
-    m = s.match(/^(\d{4})\/(\d{2})\/(\d{2})$/)
+    // SNKRDUNK doesn't zero-pad month/day ("2026/9/30", "2026/10/8"), so
+    // \d{2} silently dropped every such row — a card whose only sales were
+    // older than the relative "N日前" window then failed every update.
+    m = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/)
     if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
     return null
   }
