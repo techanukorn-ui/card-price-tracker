@@ -35,6 +35,7 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
   const [rawCondition, setRawCondition] = useState(card?.raw_condition || 'A')
   const isSealedBox = itemType === SEALED_BOX_ITEM_TYPE
   const [costsThb, setCostsThb] = useState<string[]>(initialCosts(card))
+  const [excludeFromTotals, setExcludeFromTotals] = useState(card?.exclude_from_totals || false)
   const [snkrdunkUrl, setSnkrdunkUrl] = useState(card?.snkrdunk_url || '')
   const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
@@ -95,6 +96,7 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
         snkrdunk_url: snkrdunkUrl.trim() || null,
         custom_image_url: customImageUrl,
         is_wishlist: mode === 'wishlist',
+        exclude_from_totals: mode === 'mine' ? excludeFromTotals : false,
       }
 
       if (isEdit && card) {
@@ -218,6 +220,20 @@ export default function CardFormModal({ mode, card, onClose, onSaved }: Props) {
               </p>
             )}
           </div>
+        )}
+
+        {mode === 'mine' && (
+          <label className="flex items-start gap-2 rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800/60">
+            <input
+              type="checkbox"
+              checked={excludeFromTotals}
+              onChange={(e) => setExcludeFromTotals(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span className="text-slate-600 dark:text-slate-300">
+              ไม่รวมในพอร์ต (ใช้เมื่อหาราคากลางไม่ได้) — ยังบันทึกต้นทุนไว้เหมือนเดิม แต่จะไม่ถูกเอาไปรวมในมูลค่า/ต้นทุนรวมของพอร์ต
+            </span>
+          </label>
         )}
 
         <Field label="SNKRDUNK URL">

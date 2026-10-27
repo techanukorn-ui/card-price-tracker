@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { PriceAlert, PriceAlertDirection } from '@/lib/types'
+import { PriceAlert, PriceAlertDirection, PriceAlertPriceType } from '@/lib/types'
 import { formatJPY, formatRelative } from '@/lib/format'
 
 interface Props {
@@ -88,6 +88,9 @@ export default function PriceAlertsPanel({ cardId, isWishlist, readOnly }: Props
                 <span className="num font-semibold text-slate-800 dark:text-slate-200">
                   {a.direction === 'above' ? '⬆️ ขึ้นถึง' : '⬇️ ลงถึง'} {formatJPY(a.target_price_jpy)}
                 </span>
+                <span className="ml-1.5 text-slate-400">
+                  ({a.price_type === 'listing' ? 'ราคาตั้งขายต่ำสุด' : 'ราคาเฉลี่ยขายจริง'})
+                </span>
                 {a.note && <p className="mt-0.5 text-slate-400">{a.note}</p>}
                 <p className="mt-0.5 text-[10px] text-slate-400">
                   {!a.is_active
@@ -156,6 +159,7 @@ function AlertForm({
 }) {
   const [target, setTarget] = useState(alert ? String(alert.target_price_jpy) : '')
   const [direction, setDirection] = useState<PriceAlertDirection>(alert?.direction || (isWishlist ? 'below' : 'above'))
+  const [priceType, setPriceType] = useState<PriceAlertPriceType>(alert?.price_type || 'sold_avg')
   const [note, setNote] = useState(alert?.note || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -172,6 +176,7 @@ function AlertForm({
       card_id: cardId,
       target_price_jpy: targetPrice,
       direction,
+      price_type: priceType,
       note: note.trim() || null,
       updated_at: new Date().toISOString(),
       // editing the target/direction re-arms the alert
@@ -215,6 +220,36 @@ function AlertForm({
           ⬇️ แจ้งเมื่อราคาลงถึง
         </button>
       </div>
+
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setPriceType('sold_avg')}
+          className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold ${
+            priceType === 'sold_avg'
+              ? 'bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300'
+              : 'bg-white text-slate-500 dark:bg-slate-900 dark:text-slate-400'
+          }`}
+        >
+          ราคาเฉลี่ยขายจริง
+        </button>
+        <button
+          type="button"
+          onClick={() => setPriceType('listing')}
+          className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold ${
+            priceType === 'listing'
+              ? 'bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300'
+              : 'bg-white text-slate-500 dark:bg-slate-900 dark:text-slate-400'
+          }`}
+        >
+          ราคาตั้งขายต่ำสุดในตลาด
+        </button>
+      </div>
+      <p className="mt-1 text-[10px] text-slate-400">
+        {priceType === 'listing'
+          ? 'แจ้งเตือนตามราคาตั้งขายที่ถูกที่สุดที่มีอยู่จริงในตลาดตอนนี้ (出品中最安値)'
+          : 'แจ้งเตือนตามราคาเฉลี่ยจากรายการขายจริงย้อนหลัง (ค่าเดียวกับ "ราคาตลาดล่าสุด" ที่โชว์บนหน้าเว็บ)'}
+      </p>
 
       <label className="mt-2 block">
         <span className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">ราคาเป้าหมาย (เยน)</span>

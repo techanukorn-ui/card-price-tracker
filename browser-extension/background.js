@@ -61,7 +61,10 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedB
     if (m) return new Date(Date.now() - Number(m[1]) * 60 * 60 * 1000)
     m = s.match(/^(\d+)日前$/)
     if (m) return new Date(Date.now() - Number(m[1]) * 24 * 60 * 60 * 1000)
-    m = s.match(/^(\d{4})\/(\d{2})\/(\d{2})$/)
+    // SNKRDUNK doesn't zero-pad month/day ("2026/9/30", "2026/10/8"), so
+    // \d{2} silently dropped every such row — a card whose only sales were
+    // older than the relative "N日前" window then failed every update.
+    m = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/)
     if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
     return null
   }
@@ -194,7 +197,15 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedB
     const avg = used.reduce((sum, r) => sum + r.price, 0) / used.length
 
     const image_url = hasImage ? null : findMainImage()
-    const lowest_listing_price_jpy = readListingPriceFromButton(findPriceGridButton(targetVariant))
+    // The price grid (a separate section from the sold-history table polled
+    // above) can still be mid-render at this point, especially right after
+    // clicking the grade filter — reading it synchronously here was racing
+    // that render and intermittently coming back null, which silently froze
+    // cards.lowest_listing_price_jpy at its last successful value with no
+    // error surfaced (the main price_history insert still succeeds). Poll
+    // for it the same way the grade filter button itself is polled for.
+    const priceGridBtn = await pollUntil(() => findPriceGridButton(targetVariant), 5000)
+    const lowest_listing_price_jpy = readListingPriceFromButton(priceGridBtn)
 
     return {
       ok: true,

@@ -61,20 +61,24 @@ const SORT_LABELS: Record<SortOption, string> = {
   name_asc: 'ชื่อ (ก-ฮ)',
 }
 
+// Singles are listed first, Sequential Sets pushed to the bottom — a set
+// spans the full grid width (see the "col-span" block in the render), so
+// mixing it in between singles breaks up the grid's flow.
 function groupBySequentialSet(list: CardWithLatestPrice[]): MyCardRenderItem[] {
   const seenSets = new Set<string>()
-  const items: MyCardRenderItem[] = []
+  const singles: MyCardRenderItem[] = []
+  const sets: MyCardRenderItem[] = []
   for (const c of list) {
     if (c.sequential_set_id) {
       if (seenSets.has(c.sequential_set_id)) continue
       seenSets.add(c.sequential_set_id)
       const groupCards = list.filter((x) => x.sequential_set_id === c.sequential_set_id)
-      items.push({ type: 'set', setId: c.sequential_set_id, cards: groupCards })
+      sets.push({ type: 'set', setId: c.sequential_set_id, cards: groupCards })
     } else {
-      items.push({ type: 'single', card: c })
+      singles.push({ type: 'single', card: c })
     }
   }
-  return items
+  return [...singles, ...sets]
 }
 
 function getProfitInfo(c: CardWithLatestPrice) {

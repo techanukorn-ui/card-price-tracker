@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
-// POST /api/cards — create a card. Requires the admin session cookie (checked in middleware).
+// POST /api/cards — create a card.
 export async function POST(req: NextRequest) {
   let payload: any
   try {

@@ -63,6 +63,13 @@ alter table public.cards add column if not exists item_type text not null defaul
 alter table public.cards add column if not exists lowest_listing_price_jpy numeric;
 alter table public.cards add column if not exists lowest_listing_price_fetched_at timestamptz;
 
+-- exclude_from_totals: for items with no reliable market price to benchmark
+-- against (e.g. sealed sets SNKRDUNK doesn't list) — the card still shows in
+-- "การ์ดของฉัน" with its own cost, but its cost/value is left out of every
+-- portfolio aggregate (Dashboard totals, the cost/value chart, category
+-- breakdown, weekly digest, portfolio alerts).
+alter table public.cards add column if not exists exclude_from_totals boolean not null default false;
+
 -- ============ price_history ============
 -- one row per price snapshot. never updated/overwritten, only inserted.
 create table if not exists public.price_history (
@@ -107,6 +114,10 @@ create table if not exists public.price_alerts (
   card_id uuid not null references public.cards(id) on delete cascade,
   target_price_jpy numeric not null,
   direction text not null check (direction in ('above', 'below')),
+  -- which live price number this alert watches: the sold-price average
+  -- ('sold_avg', the original/default behavior) or the current cheapest
+  -- active listing ('listing') — see lib/priceAlerts.ts.
+  price_type text not null default 'sold_avg' check (price_type in ('sold_avg', 'listing')),
   note text,
   is_active boolean not null default true,
   triggered_at timestamptz,
@@ -115,6 +126,10 @@ create table if not exists public.price_alerts (
 );
 
 create index if not exists price_alerts_card_id_idx on public.price_alerts(card_id);
+
+alter table public.price_alerts add column if not exists price_type text not null default 'sold_avg';
+alter table public.price_alerts drop constraint if exists price_alerts_price_type_check;
+alter table public.price_alerts add constraint price_alerts_price_type_check check (price_type in ('sold_avg', 'listing'));
 
 alter table public.price_alerts enable row level security;
 drop policy if exists "price_alerts_allow_all" on public.price_alerts;

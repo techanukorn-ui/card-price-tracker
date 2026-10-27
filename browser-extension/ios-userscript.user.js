@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Card Price Tracker - Mobile Batch Update
 // @namespace    card-price-tracker
-// @version      1.3
+// @version      1.5
 // @description  Scrapes SNKRDUNK sold-price history and reports it back to card-price-tracker, one card per page load. Only activates when the page URL carries the cpt_* queue params created by the web app's "อัปเดตราคา (มือถือ)" button — otherwise it's a no-op, safe to leave installed and browsing SNKRDUNK normally.
 // @match        https://snkrdunk.com/*
 // @run-at       document-idle
@@ -66,7 +66,8 @@
     if (m) return new Date(Date.now() - Number(m[1]) * 60 * 60 * 1000)
     m = s.match(/^(\d+)日前$/)
     if (m) return new Date(Date.now() - Number(m[1]) * 24 * 60 * 60 * 1000)
-    m = s.match(/^(\d{4})\/(\d{2})\/(\d{2})$/)
+    // SNKRDUNK doesn't zero-pad month/day — see background.js parseSoldAt.
+    m = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/)
     if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
     return null
   }
@@ -157,7 +158,12 @@
     const avg = used.reduce((sum, r) => sum + r.price, 0) / used.length
 
     const image_url = card.hasImage ? null : findMainImage()
-    const lowest_listing_price_jpy = readListingPriceFromButton(findPriceGridButton(targetVariant))
+    // Same race as browser-extension/background.js: the price grid can still
+    // be mid-render right after clicking the grade filter, so read it
+    // synchronously was intermittently coming back null and silently
+    // freezing lowest_listing_price_jpy at its last good value. Poll for it.
+    const priceGridBtn = await pollUntil(() => findPriceGridButton(targetVariant), 5000)
+    const lowest_listing_price_jpy = readListingPriceFromButton(priceGridBtn)
 
     return { ok: true, price_jpy: Math.round(avg * 100) / 100, image_url, lowest_listing_price_jpy }
   }

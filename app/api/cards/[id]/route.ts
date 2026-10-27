@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
-// PUT /api/cards/[id] — update a card. Requires the admin session cookie (checked in middleware).
+// PUT /api/cards/[id] — update a card.
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   let payload: any
   try {
@@ -22,7 +22,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json({ success: true, data })
 }
 
-// DELETE /api/cards/[id] — delete a card. Requires the admin session cookie (checked in middleware).
+// DELETE /api/cards/[id] — delete a card.
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const { error } = await supabaseAdmin.from('cards').delete().eq('id', params.id)
   if (error) {

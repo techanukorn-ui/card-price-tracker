@@ -40,7 +40,9 @@ export function buildWeeklyDigest(
   scope: WeeklyDigestScope,
   now: Date = new Date()
 ): WeeklyDigestData {
-  const scopedCards = cards.filter((c) => (scope === 'wishlist' ? c.is_wishlist : !c.is_wishlist && !c.is_sold))
+  const scopedCards = cards.filter((c) =>
+    scope === 'wishlist' ? c.is_wishlist : !c.is_wishlist && !c.is_sold && !c.exclude_from_totals
+  )
 
   const byCard = new Map<string, PriceHistory[]>()
   for (const c of scopedCards) byCard.set(c.id, [])

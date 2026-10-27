@@ -76,6 +76,14 @@ export default function CardTile({
             {card.category}
             {card.item_type === SEALED_BOX_ITEM_TYPE ? ` · ${SEALED_BOX_ITEM_TYPE}` : ''}
           </p>
+          {card.exclude_from_totals && (
+            <span
+              title="ไม่รวมในมูลค่า/ต้นทุนรวมของพอร์ต"
+              className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"
+            >
+              ไม่รวมพอร์ต
+            </span>
+          )}
           {alertStatus && (
             <span
               title={alertStatus === 'waiting' ? 'มีเป้าราคาที่กำลังรออยู่' : 'ถึงเป้าราคาแล้ว รอดูรายละเอียด'}
