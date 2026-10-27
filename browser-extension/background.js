@@ -67,7 +67,10 @@ function scrapeCardOnPage(grade, rawCondition, itemType, sealedBoxLabel, sealedB
   }
 
   function readRows() {
-    const soldAtCells = document.querySelectorAll('tr td[class*="__soldAt"]')
+    // SNKRDUNK's CSS-module class prefix changed from a "Component__x" scheme
+    // (double underscore) to "t3PNEW_x" (single underscore) at some point —
+    // matching on the "soldAt" suffix alone survives either naming scheme.
+    const soldAtCells = document.querySelectorAll('tr td[class*="soldAt"]')
     return Array.from(soldAtCells).map((td) => {
       const tr = td.closest('tr')
       const tds = tr ? tr.querySelectorAll('td') : []
