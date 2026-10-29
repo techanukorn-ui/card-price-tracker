@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Card Price Tracker - Mobile Batch Update
 // @namespace    card-price-tracker
-// @version      1.5
+// @version      1.6
 // @description  Scrapes SNKRDUNK sold-price history and reports it back to card-price-tracker, one card per page load. Only activates when the page URL carries the cpt_* queue params created by the web app's "อัปเดตราคา (มือถือ)" button — otherwise it's a no-op, safe to leave installed and browsing SNKRDUNK normally.
 // @match        https://snkrdunk.com/*
 // @run-at       document-idle
@@ -73,7 +73,9 @@
   }
 
   function readRows() {
-    const soldAtCells = document.querySelectorAll('tr td[class*="__soldAt"]')
+    // SNKRDUNK's CSS-module class names change between builds ("Foo__soldAt"
+    // became "t3PNEW_soldAt"), so match only the stable "soldAt" part.
+    const soldAtCells = document.querySelectorAll('tr td[class*="soldAt"]')
     return Array.from(soldAtCells).map((td) => {
       const tr = td.closest('tr')
       const tds = tr ? tr.querySelectorAll('td') : []
